@@ -21,6 +21,10 @@ interface i1 =
   broadcast event e1 :: "int \<times> string" e2 :: "bool"
   event v1 :: "string"
 
+robotic_platform n =
+  var x :: int
+  requires f
+
 func f1(x :: int) :: int
   precondition "x \<ge> 0"
   postcondition "result\<^sup>2 = x"

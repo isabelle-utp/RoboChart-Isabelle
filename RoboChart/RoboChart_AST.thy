@@ -43,12 +43,28 @@ record Interface = Named +
   operations :: "ODecl list"
   events     :: "EDecl list"
 
+datatype ContainerDecl =
+  IntfDecl InterfaceDecl |
+  UsesDecl ID |
+  ProvDecl ID |
+  ReqDecl ID
+
 abbreviation "emptyInterface \<equiv> 
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [] \<rparr>"
 
+record Container = Interface +
+  uses     :: "ID list"
+  provides :: "ID list"
+  requires :: "ID list"
+
+abbreviation "emptyContainer \<equiv> 
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [], uses = [], provides = [], requires = [] \<rparr>"
+
+type_synonym RoboticPlatform = ContainerDecl
+  
 text \<open> This is essentially an imperative algorithm for updating an interface. \<close>
 
-fun upd_Interface :: "InterfaceDecl \<Rightarrow> Interface \<Rightarrow> Interface" where
+fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarrow> 'a Interface_scheme" where
 "upd_Interface (VarDecl CNST vs) i = i\<lparr>constants := constants i @ vs\<rparr>" |
 "upd_Interface (VarDecl VAR vs) i = i\<lparr>variables := variables i @ vs\<rparr>" |
 "upd_Interface (ClockDecl n) i = i\<lparr>clocks := clocks i @ [n]\<rparr>" |
@@ -57,6 +73,15 @@ fun upd_Interface :: "InterfaceDecl \<Rightarrow> Interface \<Rightarrow> Interf
 
 definition mk_Interface :: "ID \<times> InterfaceDecl list \<Rightarrow> Interface" where
 "mk_Interface = (\<lambda> (n, its). foldr upd_Interface its (emptyInterface\<lparr> ident := n \<rparr>))"
+
+fun upd_Container :: "ContainerDecl \<Rightarrow> Container \<Rightarrow> Container" where
+"upd_Container (IntfDecl d) c = upd_Interface d c" |
+"upd_Container (UsesDecl d) c = c\<lparr>uses := uses c @ [d]\<rparr>" |
+"upd_Container (ProvDecl d) c = c\<lparr>provides := provides c @ [d]\<rparr>" |
+"upd_Container (ReqDecl d) c = c\<lparr>requires := requires c @ [d]\<rparr>"
+
+definition mk_Container :: "ID \<times> ContainerDecl list \<Rightarrow> Container" where
+"mk_Container = (\<lambda> (n, its). foldr upd_Container its (emptyContainer\<lparr> ident := n \<rparr>))"
 
 datatype Function = Func ID "(ID \<times> typ) list" "typ" "term" "term"
 
@@ -71,6 +96,8 @@ code_reflect RC_AST
   and EDecl_ext = EDecl_ext
   and InterfaceDecl = VarDecl | ClockDecl | OpDecl | EventDecl
   and Interface_ext = Interface_ext
-functions Variable mk_Interface ident variables 
+  and ContainerDecl = IntfDecl | UsesDecl | ProvDecl | ReqDecl
+  and Container_ext = Container_ext
+functions Variable ident variables mk_Interface mk_Container
 
 end

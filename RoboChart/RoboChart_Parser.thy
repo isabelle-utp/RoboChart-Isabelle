@@ -2,7 +2,10 @@ section \<open> RoboChart Parser Library \<close>
 
 theory RoboChart_Parser
   imports RoboChart_AST
-  keywords "var" "const" "clock" "opdecl" "terminates" "broadcast" "event" "precondition" "postcondition"
+  keywords 
+    "var" "const" "clock" "opdecl" "terminates" 
+    "broadcast" "event" "precondition" "postcondition"
+    "uses" "provides" "requires"
 begin
 
 ML \<open>
@@ -49,12 +52,28 @@ fun eventDecl ctx =
   (Scan.optional (@{keyword "broadcast"} >> (fn _ => true)) false 
   -- (@{keyword "event"} |-- repeat1 (nameParser ctx))) >> EventDecl
 
+fun intfKeyParser ctx =
+  varDeclParser ctx || clockDeclParser ctx || operationSigParser ctx || eventDecl ctx
+
 fun interfaceParser ctx = 
   (name -- 
     (@{keyword "="} |--
-      repeat1 (varDeclParser ctx || clockDeclParser ctx || operationSigParser ctx || eventDecl ctx)
+      repeat1 (intfKeyParser ctx)
     )) >> mk_Interface;
 
+val usesParser = @{keyword uses} |-- name >> UsesDecl;
+val provParser = @{keyword provides} |-- name >> ProvDecl;
+val reqParser = @{keyword requires} |-- name >> ReqDecl;
+
+fun containerParser ctx =
+  (intfKeyParser ctx >> IntfDecl) || usesParser || provParser || reqParser;
+
+fun roboticPlatformParser ctx =
+  (name -- 
+    (@{keyword "="} |--
+      repeat1 (containerParser ctx)
+    )) >> mk_Container;
+  
 fun functionParser ctx =
   (name -- parameterParser ctx -- ($$$ "::" |-- typParser ctx) --
   optional (@{keyword "precondition"} |-- termParser ctx) @{term True} --

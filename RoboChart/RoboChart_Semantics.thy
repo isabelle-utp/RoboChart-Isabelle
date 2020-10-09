@@ -1,6 +1,6 @@
 theory RoboChart_Semantics
   imports RoboChart_Validation RoboChart_Parser
-  keywords "interface" "func" :: "thy_decl_block"
+  keywords "interface" "func" "robotic_platform" :: "thy_decl_block"
 begin
 
 definition "fun_spec P Q = (\<lambda> x. if (P x) then (THE y. Q x y) else undefined)"
@@ -34,6 +34,7 @@ open RC_Validation;
 open RC_Semantics;
 
 type interface = unit interface_ext named_ext;
+type roboticPlatform = unit container_ext interface_ext named_ext;
 
 structure RCInterfaces = Theory_Data
   (type T = interface Symtab.table
@@ -41,6 +42,11 @@ structure RCInterfaces = Theory_Data
    val extend = I
    val merge = Symtab.merge (K true));
 
+structure RCPlatforms = Theory_Data
+  (type T = roboticPlatform Symtab.table
+   val empty = Symtab.empty
+   val extend = I
+   val merge = Symtab.merge (K true));
 
 fun compileDummy _ thy = thy;
 
@@ -67,6 +73,11 @@ val _ =
 val _ =
   Outer_Syntax.command @{command_keyword interface} "define RoboChart interfaces" 
     (RC_Parser.interfaceParser @{context} >> (Toplevel.theory o RC_Compiler.compileInterface));
+
+val _ =
+  Outer_Syntax.command @{command_keyword robotic_platform} "define RoboChart robotic platforms" 
+    (RC_Parser.roboticPlatformParser @{context} >> (Toplevel.theory o K I));
 \<close>
+
 
 end
