@@ -8,6 +8,9 @@ theory RoboChart_Parser
     "uses" "provides" "requires"
 begin
 
+text \<open> We define a set of parser combinators for the RoboChart commands. These simply produce 
+  elements of the AST, but do no semantic processing. \<close>
+
 ML \<open>
 structure RC_Parser =
 struct

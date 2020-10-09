@@ -4,6 +4,10 @@ theory RoboChart_AST
   imports "Isabelle-API.Isabelle_API"
 begin
 
+text \<open> Here, we define the RoboChart AST using a series of HOL data types. We also define some 
+  basic processing functions for helping conversion of the textual syntax to AST elements. 
+  We code generate all of these to ML, which allows them to be used for semantic generation. \<close>
+
 type_synonym ID = "String.literal"
 
 datatype VariableModifier = VAR | CNST
@@ -29,7 +33,10 @@ record ODecl = Parameterised +
 record EDecl = Named +
   etype :: "typ"
   bcast :: bool
-  
+
+text \<open> This is the syntactic representation of an interface element. The body of interface consists
+  of a list of these elements. \<close>
+
 datatype InterfaceDecl =
   VarDecl VariableModifier "Variable list" |
   ClockDecl ID |
@@ -62,7 +69,8 @@ abbreviation "emptyContainer \<equiv>
 
 type_synonym RoboticPlatform = ContainerDecl
   
-text \<open> This is essentially an imperative algorithm for updating an interface. \<close>
+text \<open> This is essentially an imperative algorithm for updating an interface. We use this to 
+  turn a sequence of definitions into an interface object. \<close>
 
 fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarrow> 'a Interface_scheme" where
 "upd_Interface (VarDecl CNST vs) i = i\<lparr>constants := constants i @ vs\<rparr>" |
@@ -73,6 +81,8 @@ fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarr
 
 definition mk_Interface :: "ID \<times> InterfaceDecl list \<Rightarrow> Interface" where
 "mk_Interface = (\<lambda> (n, its). foldr upd_Interface its (emptyInterface\<lparr> ident := n \<rparr>))"
+
+text \<open> Same as the above, but for container-like structures (e.g. robotic platforms) \<close>
 
 fun upd_Container :: "ContainerDecl \<Rightarrow> Container \<Rightarrow> Container" where
 "upd_Container (IntfDecl d) c = upd_Interface d c" |

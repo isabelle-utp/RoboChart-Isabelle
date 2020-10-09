@@ -1,7 +1,12 @@
+section \<open> RoboChart Static Semantics \<close>
+
 theory RoboChart_Semantics
   imports RoboChart_Validation RoboChart_Parser
   keywords "interface" "func" "robotic_platform" :: "thy_decl_block"
 begin
+
+text \<open> Finally, we turn the validated AST representations into semantics. This often requires
+  the production of terms, which can also be represented in HOL and then code generated. \<close>
 
 definition "fun_spec P Q = (\<lambda> x. if (P x) then (THE y. Q x y) else undefined)"
 
