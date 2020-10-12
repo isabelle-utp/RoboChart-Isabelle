@@ -6,6 +6,8 @@ theory RoboChart_Parser
     "var" "const" "clock" "opdecl" "terminates" 
     "broadcast" "event" "precondition" "postcondition"
     "uses" "provides" "requires"
+    "state" "entry" "during" "exit" "probabilistic" "initial" "final" "junction"
+    "transition" "frm" "to" "trigger" "probability" "condition" "action" "!" "?" "]>" "<["
 begin
 
 text \<open> We define a set of parser combinators for the RoboChart commands. These simply produce 
@@ -77,6 +79,48 @@ fun roboticPlatformParser ctx =
       repeat1 (containerParser ctx)
     )) >> mk_Container;
   
+fun actionParser ctx =
+  (@{keyword "entry"} |-- name >> Entry) || 
+  (@{keyword "during"} |-- name >> During) || 
+  (@{keyword "exit"} |-- name >> Exit);
+
+fun nodeParser ctx =
+  (@{keyword "initial"} |-- name >> Initial) ||
+  (@{keyword "junction"} |-- name >> Junction) ||
+  (@{keyword "final"} |-- name >> Final) ||
+  (@{keyword "probabilistic"} |-- name >> ProbabilisticJunction) ||
+  (@{keyword "state"} |-- name -- 
+    ($$$ "[" |-- repeat (actionParser ctx) --| $$$ "]") >> (fn (n, a) => State (n, [], [], a)))
+
+fun eventParser ctx = 
+  ((name --| (@{keyword "?"} -- @{keyword "["})) -- name --| @{keyword "]"}) >> Input ||
+  ((name --| (@{keyword "!"} -- @{keyword "["})) -- termParser ctx --| @{keyword "]"}) >> Output
+
+fun triggerParser ctx =
+  (@{keyword "trigger"}) |--
+  option ($$$ "[" |-- termParser ctx --| $$$ "]>") --
+  eventParser ctx --
+  option ($$$ "<[" |-- termParser ctx --| $$$ "]")
+  >> (fn ((bg, ev), ed) => Trigger_ext (bg, ev, NONE, [], ed, ()))
+
+fun transitionParser ctx =
+  (@{keyword "transition"} |-- name) --
+    ($$$ "[" |--
+      (@{keyword "frm"} |-- name) --
+      (@{keyword "to"} |-- name) --
+      option (triggerParser ctx)
+     --| $$$ "]") >> (fn (n, ((s, t), tr)) => Named_ext (n, Transition_ext (s, t, tr, NONE, NONE, NONE, ())));
+
+
+fun stateMachineBodyParser ctx = 
+  (containerParser ctx >> StmContainerDecl) || (nodeParser ctx >> NodeDecl) || (transitionParser ctx >> TransitionDecl) ;
+
+fun stateMachineDefParser ctx =
+  (name --
+    (@{keyword "="} |--
+      repeat1 (stateMachineBodyParser ctx)
+    ));
+
 fun functionParser ctx =
   (name -- parameterParser ctx -- ($$$ "::" |-- typParser ctx) --
   optional (@{keyword "precondition"} |-- termParser ctx) @{term True} --

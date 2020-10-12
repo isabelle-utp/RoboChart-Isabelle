@@ -2,7 +2,7 @@ section \<open> RoboChart Static Semantics \<close>
 
 theory RoboChart_Semantics
   imports RoboChart_Validation RoboChart_Parser
-  keywords "interface" "func" "robotic_platform" :: "thy_decl_block"
+  keywords "interface" "func" "robotic_platform" "stm" :: "thy_decl_block"
 begin
 
 text \<open> Finally, we turn the validated AST representations into semantics. This often requires
@@ -82,6 +82,11 @@ val _ =
 val _ =
   Outer_Syntax.command @{command_keyword robotic_platform} "define RoboChart robotic platforms" 
     (RC_Parser.roboticPlatformParser @{context} >> (Toplevel.theory o K I));
+
+val _ =
+  Outer_Syntax.command @{command_keyword stm} "define RoboChart state machines" 
+    (RC_Parser.stateMachineDefParser @{context} >> (Toplevel.theory o K I));
+
 \<close>
 
 

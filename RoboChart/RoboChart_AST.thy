@@ -68,7 +68,43 @@ abbreviation "emptyContainer \<equiv>
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [], uses = [], provides = [], requires = [] \<rparr>"
 
 type_synonym RoboticPlatform = ContainerDecl
+
+datatype TriggerType =
+  Input ID ID | Output ID "term" | Sync ID "term"
+
+record Trigger =
+  start   :: "term option"
+  trig    :: "TriggerType"
+  time    :: "ID option"
+  reset   :: "ID list"
+  "end"   :: "term option"
   
+record Transition = Named +
+  "from"        :: "ID"
+  "to"          :: "ID"
+  "trigger"     :: "Trigger option"
+  "probability" :: "term option"
+  "condition"   :: "term option"
+  "action"      :: "term option"
+
+datatype Action = Entry ID | During ID | Exit ID
+
+datatype Node =
+  State (sname: ID) (snodes: "Node list") (stransitions: "Transition list") (sactions: "Action list") |
+  Initial ID |
+  Junction ID |
+  Final ID |
+  ProbabilisticJunction ID
+
+datatype StateMachineDecl = 
+  StmContainerDecl ContainerDecl |
+  NodeDecl Node |
+  TransitionDecl Transition
+
+record StateMachineDef = Container +
+  nodes       :: "Node list"
+  transitions :: "Transition list"
+
 text \<open> This is essentially an imperative algorithm for updating an interface. We use this to 
   turn a sequence of definitions into an interface object. \<close>
 
@@ -108,6 +144,13 @@ code_reflect RC_AST
   and Interface_ext = Interface_ext
   and ContainerDecl = IntfDecl | UsesDecl | ProvDecl | ReqDecl
   and Container_ext = Container_ext
-functions Variable ident variables mk_Interface mk_Container
+  and TriggerType = Input | Output | Sync
+  and Trigger_ext = Trigger_ext
+  and Transition_ext = Transition_ext
+  and Action = Entry | During | Exit
+  and Node = State | Initial | Junction | Final | ProbabilisticJunction
+  and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
+  and StateMachineDef_ext = StateMachineDef_ext
+functions Variable ident variables mk_Interface mk_Container Transition_ext
 
 end

@@ -25,6 +25,14 @@ robotic_platform n =
   var x :: int
   requires f
 
+stm s1 =
+  uses v
+  initial i1
+  final f
+  state ms [entry "act" exit "hello"]
+  transition t1 [frm i1 to act trigger a?[b]]
+  probabilistic p1
+
 func f1(x :: int) :: int
   precondition "x \<ge> 0"
   postcondition "result\<^sup>2 = x"
