@@ -1,7 +1,7 @@
 section \<open> RoboChart Parser Library \<close>
 
 theory RoboChart_Parser
-  imports RoboChart_AST
+  imports RoboChart_AST "HOL.Real"
   keywords 
     "var" "const" "clock" "opdecl" "terminates" 
     "broadcast" "event" "precondition" "postcondition"
@@ -11,7 +11,9 @@ theory RoboChart_Parser
 begin
 
 text \<open> We define a set of parser combinators for the RoboChart commands. These simply produce 
-  elements of the AST, but do no semantic processing. \<close>
+  elements of the AST, but do no semantic processing. The only exception is that types are parsed
+  and interpreted as these cannot be defined within most structures. Terms are not processed,
+  as this depends on the particular action semantics being employed. \<close>
 
 ML \<open>
 structure RC_Parser =
@@ -26,105 +28,104 @@ open RC_AST;
 fun quad1 (((a, b), c), d) = (a, b, c, d);
 fun quint1 ((((a, b), c), d), e) = (a, b, c, d, e);
 
-fun typParser ctx = ((!!! typ) >> read_typ ctx);
+val nameParser = name -- ($$$ "::" |-- typ);
 
-fun termParser ctx = ((!!! typ) >> parse_term ctx);
-
-fun nameParser ctx = name -- ($$$ "::" |-- typParser ctx);
-
-fun variableParser ctx = 
-  (nameParser ctx -- (option (@{keyword "="} |-- termParser ctx)))
+val variableParser = 
+  (nameParser -- (option (@{keyword "="} |-- term)))
   >> variable;
 
-fun parameterParser ctx = 
-  @{keyword "("} |-- repeat (nameParser ctx --| @{keyword ","}) -- nameParser ctx --| @{keyword ")"}
+val parameterParser = 
+  @{keyword "("} |-- repeat (nameParser --| @{keyword ","}) -- nameParser --| @{keyword ")"}
   >> (fn (xs, x) => xs @ [x])
 
-fun varDeclParser ctx = 
+val varDeclParser = 
   (@{keyword "var"} >> (fn _ => VAR) || @{keyword "const"} >> (fn _ => CNST)) 
-    -- repeat1 (variableParser ctx) >> VarDecl;
+    -- repeat1 variableParser >> VarDecl;
   
-fun clockDeclParser _ =
+val clockDeclParser =
   (@{keyword "clock"} |-- name) >> ClockDecl;
 
 val terminatesParser =
   optional (@{keyword "["} |-- (@{keyword "terminates"} >> (fn _ => true)) --| @{keyword "]"}) false;
 
-fun operationSigParser ctx =
-  @{keyword "opdecl"} |-- (name -- parameterParser ctx -- terminatesParser) >> triple1 >> OpDecl
+val operationSigParser =
+  @{keyword "opdecl"} |-- (name -- parameterParser -- terminatesParser) >> triple1 >> OpDecl
 
-fun eventDecl ctx =
+val eventDecl =
   (Scan.optional (@{keyword "broadcast"} >> (fn _ => true)) false 
-  -- (@{keyword "event"} |-- repeat1 (nameParser ctx))) >> EventDecl
+  -- (@{keyword "event"} |-- repeat1 nameParser)) >> EventDecl
 
-fun intfKeyParser ctx =
-  varDeclParser ctx || clockDeclParser ctx || operationSigParser ctx || eventDecl ctx
+val intfKeyParser =
+  varDeclParser || clockDeclParser || operationSigParser || eventDecl
 
-fun interfaceParser ctx = 
+val interfaceParser = 
   (name -- 
     (@{keyword "="} |--
-      repeat1 (intfKeyParser ctx)
+      repeat1 intfKeyParser
     )) >> mk_Interface;
 
 val usesParser = @{keyword uses} |-- name >> UsesDecl;
 val provParser = @{keyword provides} |-- name >> ProvDecl;
 val reqParser = @{keyword requires} |-- name >> ReqDecl;
 
-fun containerParser ctx =
-  (intfKeyParser ctx >> IntfDecl) || usesParser || provParser || reqParser;
+val containerParser =
+  (intfKeyParser >> IntfDecl) || usesParser || provParser || reqParser;
 
-fun roboticPlatformParser ctx =
+val roboticPlatformParser =
   (name -- 
     (@{keyword "="} |--
-      repeat1 (containerParser ctx)
+      repeat1 containerParser
     )) >> mk_Container;
   
-fun actionParser ctx =
+val actionParser =
   (@{keyword "entry"} |-- name >> Entry) || 
   (@{keyword "during"} |-- name >> During) || 
   (@{keyword "exit"} |-- name >> Exit);
 
-fun nodeParser ctx =
+val nodeParser =
   (@{keyword "initial"} |-- name >> Initial) ||
   (@{keyword "junction"} |-- name >> Junction) ||
   (@{keyword "final"} |-- name >> Final) ||
   (@{keyword "probabilistic"} |-- name >> ProbabilisticJunction) ||
   (@{keyword "state"} |-- name -- 
-    ($$$ "[" |-- repeat (actionParser ctx) --| $$$ "]") >> (fn (n, a) => State (n, [], [], a)))
+    ($$$ "[" |-- repeat actionParser --| $$$ "]") >> (fn (n, a) => State (n, [], [], a)))
 
-fun eventParser ctx = 
+val eventParser = 
   ((name --| (@{keyword "?"} -- @{keyword "["})) -- name --| @{keyword "]"}) >> Input ||
-  ((name --| (@{keyword "!"} -- @{keyword "["})) -- termParser ctx --| @{keyword "]"}) >> Output
+  ((name --| (@{keyword "!"} -- @{keyword "["})) -- term --| @{keyword "]"}) >> Output
 
-fun triggerParser ctx =
+val triggerParser =
   (@{keyword "trigger"}) |--
-  option ($$$ "[" |-- termParser ctx --| $$$ "]>") --
-  eventParser ctx --
-  option ($$$ "<[" |-- termParser ctx --| $$$ "]")
+  option ($$$ "[" |-- term --| $$$ "]>") --
+  eventParser --
+  option ($$$ "<[" |-- term --| $$$ "]")
   >> (fn ((bg, ev), ed) => Trigger_ext (bg, ev, NONE, [], ed, ()))
 
-fun transitionParser ctx =
+val transitionParser =
   (@{keyword "transition"} |-- name) --
     ($$$ "[" |--
       (@{keyword "frm"} |-- name) --
       (@{keyword "to"} |-- name) --
-      option (triggerParser ctx)
-     --| $$$ "]") >> (fn (n, ((s, t), tr)) => Named_ext (n, Transition_ext (s, t, tr, NONE, NONE, NONE, ())));
+      option triggerParser --
+      option (@{keyword "probability"} |-- term) --
+      option (@{keyword "condition"} |-- term) --
+      option (@{keyword "action"} |-- term)
+     --| $$$ "]") >> (fn (n, (((((s, t), tr), p), c), a)) => Named_ext (n, Transition_ext (s, t, tr, p, c, a, ())));
+
+val stateMachineBodyParser = 
+  (containerParser >> StmContainerDecl) || (nodeParser >> NodeDecl) || (transitionParser >> TransitionDecl) ;
 
 
-fun stateMachineBodyParser ctx = 
-  (containerParser ctx >> StmContainerDecl) || (nodeParser ctx >> NodeDecl) || (transitionParser ctx >> TransitionDecl) ;
-
-fun stateMachineDefParser ctx =
+val stateMachineDefParser =
   (name --
     (@{keyword "="} |--
-      repeat1 (stateMachineBodyParser ctx)
+      repeat1 stateMachineBodyParser
     ));
 
-fun functionParser ctx =
-  (name -- parameterParser ctx -- ($$$ "::" |-- typParser ctx) --
-  optional (@{keyword "precondition"} |-- termParser ctx) @{term True} --
-  (@{keyword "postcondition"} |-- termParser ctx)) >> quint1 >> Func
+val functionParser =
+  (name -- parameterParser -- ($$$ "::" |-- typ) --
+  optional (@{keyword "precondition"} |-- term) "True" --
+  (@{keyword "postcondition"} |-- term)) >> quint1 >> FuncDecl
 
 end
 \<close>

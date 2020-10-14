@@ -9,6 +9,8 @@ text \<open> Here, we define the RoboChart AST using a series of HOL data types.
   We code generate all of these to ML, which allows them to be used for semantic generation. \<close>
 
 type_synonym ID = "String.literal"
+type_synonym uterm = "String.literal"
+type_synonym utyp = "String.literal"
 
 datatype VariableModifier = VAR | CNST
 
@@ -16,22 +18,22 @@ record Named =
   ident :: ID
 
 record Typed = Named +
-  type :: "typ"
+  type :: "utyp"
 
 record Variable = Typed +
-  initial :: "term option"
+  initial :: "uterm option" \<comment> \<open> unparsed term \<close>
 
-definition Variable :: "(String.literal \<times> typ) \<times> term option \<Rightarrow> Variable" where
+definition Variable :: "(ID \<times> utyp) \<times> uterm option \<Rightarrow> Variable" where
 "Variable = (\<lambda> ((n, t), i) . \<lparr> ident = n, type = t, initial = i \<rparr>)"
 
 record Parameterised = Named +
-  parameters :: "(ID \<times> typ) list"
+  parameters :: "(ID \<times> utyp) list"
 
 record ODecl = Parameterised +
   terminate  :: bool
 
 record EDecl = Named +
-  etype :: "typ"
+  etype :: "utyp"
   bcast :: bool
 
 text \<open> This is the syntactic representation of an interface element. The body of interface consists
@@ -40,8 +42,8 @@ text \<open> This is the syntactic representation of an interface element. The b
 datatype InterfaceDecl =
   VarDecl VariableModifier "Variable list" |
   ClockDecl ID |
-  OpDecl ID "(ID \<times> typ) list" "bool" |
-  EventDecl bool "(ID \<times> typ) list"
+  OpDecl ID "(ID \<times> utyp) list" "bool" |
+  EventDecl bool "(ID \<times> utyp) list"
 
 record Interface = Named +
   constants  :: "Variable list"
@@ -70,22 +72,24 @@ abbreviation "emptyContainer \<equiv>
 type_synonym RoboticPlatform = ContainerDecl
 
 datatype TriggerType =
-  Input ID ID | Output ID "term" | Sync ID "term"
+  Input ID ID | 
+  Output ID "uterm" | \<comment> \<open> unparsed term \<close>
+  Sync ID "term"
 
 record Trigger =
-  start   :: "term option"
+  start   :: "uterm option"
   trig    :: "TriggerType"
   time    :: "ID option"
   reset   :: "ID list"
-  "end"   :: "term option"
+  "end"   :: "uterm option"
   
 record Transition = Named +
   "from"        :: "ID"
   "to"          :: "ID"
   "trigger"     :: "Trigger option"
-  "probability" :: "term option"
-  "condition"   :: "term option"
-  "action"      :: "term option"
+  "probability" :: "uterm option"
+  "condition"   :: "uterm option"
+  "action"      :: "uterm option"
 
 datatype Action = Entry ID | During ID | Exit ID
 
@@ -129,6 +133,8 @@ fun upd_Container :: "ContainerDecl \<Rightarrow> Container \<Rightarrow> Contai
 definition mk_Container :: "ID \<times> ContainerDecl list \<Rightarrow> Container" where
 "mk_Container = (\<lambda> (n, its). foldr upd_Container its (emptyContainer\<lparr> ident := n \<rparr>))"
 
+datatype FuncDecl = FuncDecl ID "(ID \<times> utyp) list" "utyp" "uterm" "uterm"
+
 datatype Function = Func ID "(ID \<times> typ) list" "typ" "term" "term"
 
 code_reflect RC_AST
@@ -136,6 +142,7 @@ code_reflect RC_AST
   and Named_ext = Named_ext
   and Typed_ext = Typed_ext
   and Parameterised_ext = Parameterised_ext
+  and FuncDecl = FuncDecl
   and Function = Func
   and Variable_ext = Variable_ext
   and ODecl_ext = ODecl_ext

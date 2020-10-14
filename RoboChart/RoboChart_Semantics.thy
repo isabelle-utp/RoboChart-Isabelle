@@ -55,9 +55,12 @@ structure RCPlatforms = Theory_Data
 
 fun compileDummy _ thy = thy;
 
+fun compileFuncDecl ctx (FuncDecl (n, ps, t, P, Q)) =
+  Func (n, map (fn (p, t) => (p, read_typ ctx t)) ps, read_typ ctx t, parse_term ctx P, parse_term ctx Q);
+
 fun compileFunction x thy = 
   let val ctx = (Named_Target.theory_init thy)
-      val f = check_term ctx (func_body x)
+      val f = check_term ctx (func_body (compileFuncDecl ctx x))
   in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), f) ctx))
 
   end;
@@ -68,24 +71,25 @@ fun compileInterface itf thy =
   if (validate_Interface itf) 
   then RCInterfaces.map (Symtab.update (ident itf, itf)) thy
   else raise ROBOCHART_INVALID;
-
+ 
 end
 
 val _ =
   Outer_Syntax.command @{command_keyword func} "define RoboChart functions" 
-    (RC_Parser.functionParser @{context} >> (Toplevel.theory o RC_Compiler.compileFunction));
+    (RC_Parser.functionParser >> (Toplevel.theory o RC_Compiler.compileFunction));
 
 val _ =
   Outer_Syntax.command @{command_keyword interface} "define RoboChart interfaces" 
-    (RC_Parser.interfaceParser @{context} >> (Toplevel.theory o RC_Compiler.compileInterface));
+    (RC_Parser.interfaceParser >> (Toplevel.theory o RC_Compiler.compileInterface));
 
 val _ =
   Outer_Syntax.command @{command_keyword robotic_platform} "define RoboChart robotic platforms" 
-    (RC_Parser.roboticPlatformParser @{context} >> (Toplevel.theory o K I));
+    (RC_Parser.roboticPlatformParser >> (Toplevel.theory o K I));
 
 val _ =
-  Outer_Syntax.command @{command_keyword stm} "define RoboChart state machines" 
-    (RC_Parser.stateMachineDefParser @{context} >> (Toplevel.theory o K I));
+  Outer_Syntax.command @{command_keyword stm} "define RoboChart state machines"
+    (RC_Parser.stateMachineDefParser >> (Toplevel.theory o K I));
+
 
 \<close>
 
