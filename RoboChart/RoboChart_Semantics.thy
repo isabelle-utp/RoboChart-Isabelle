@@ -72,6 +72,8 @@ fun compileInterface itf thy =
   then RCInterfaces.map (Symtab.update (ident itf, itf)) thy
   else raise ROBOCHART_INVALID;
  
+fun compileStateMachine smd thy = thy;
+
 end
 
 val _ =
@@ -88,10 +90,7 @@ val _ =
 
 val _ =
   Outer_Syntax.command @{command_keyword stm} "define RoboChart state machines"
-    (RC_Parser.stateMachineDefParser >> (Toplevel.theory o K I));
-
-
+    (RC_Parser.stateMachineDefParser >> (Toplevel.theory o RC_Compiler.compileStateMachine));
 \<close>
-
 
 end

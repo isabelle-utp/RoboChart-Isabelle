@@ -26,9 +26,11 @@ robotic_platform n =
   requires f
 
 stm s1 =
+  var v1 :: int
   uses v
   initial i1
   final f
+  var v2 :: real
   state ms [entry "act" exit "hello"]
   transition t1 [frm i1 to act trigger a?[b] condition "x > 1"]
   transition t1 [frm p1 to act probability "0.1"]
