@@ -1,5 +1,5 @@
 theory RoboChart_Examples
-  imports RoboChart "HOL.Real"
+  imports RoboChart "HOL.Transcendental"
 begin
 
 text \<open> We can't use braces, because they are both designated as major keywords in Isar. \<close>
@@ -31,14 +31,19 @@ stm s1 =
   initial i1
   final f
   var v2 :: real
+  broadcast event e1 :: real e2 :: int e3 :: string
   state ms [entry "act" exit "hello"]
   transition t1 [frm i1 to act trigger a?[b] condition "x > 1"]
   transition t1 [frm p1 to act probability "0.1"]
   probabilistic p1
+  event e4 :: string
 
-func f1(x :: int) :: int
+func sqrt_alt(x :: real) :: real
   precondition "x \<ge> 0"
-  postcondition "result\<^sup>2 = x"
+  postcondition "result \<ge> 0 \<and> result\<^sup>2 = x"
+
+lemma sqrt_alt: "x \<ge> 0 \<Longrightarrow> sqrt_alt x = sqrt x"
+  by (auto simp add: sqrt_alt_def fun_spec_def) 
 
 func f2(x :: int, y :: int) :: int
   precondition "x > y"
