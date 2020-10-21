@@ -18,8 +18,7 @@ fun validate_Interface :: "Interface \<Rightarrow> bool" where
 "validate_Interface itf = 
   (Named_unique (variables itf @ constants itf) 
    \<and> Named_unique (operations itf)
-   \<and> Named_unique (events itf)
-   \<and> distinct (events itf))" 
+   \<and> Named_unique (events itf))" 
 
 code_reflect RC_Validation
   functions validate_Interface

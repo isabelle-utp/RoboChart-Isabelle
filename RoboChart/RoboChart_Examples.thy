@@ -33,7 +33,7 @@ stm s1 =
   var v2 :: real
   broadcast event e1 :: real e2 :: int e3 :: string
   state ms [entry "act" exit "hello"]
-  transition t1 [frm i1 to act trigger a?[b] condition "x > 1"]
+  transition t1 [frm i1 to act trigger "a?(b)" condition "x > 1"]
   transition t1 [frm p1 to act probability "0.1"]
   probabilistic p1
   event e4 :: string

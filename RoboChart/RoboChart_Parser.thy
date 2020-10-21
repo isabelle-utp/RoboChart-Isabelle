@@ -90,6 +90,7 @@ val nodeParser =
   (@{keyword "state"} |-- name -- 
     ($$$ "[" |-- repeat actionParser --| $$$ "]") >> (fn (n, a) => State (n, [], [], a)))
 
+(*
 val eventParser = 
   ((name --| (@{keyword "?"} -- @{keyword "["})) -- name --| @{keyword "]"}) >> Input ||
   ((name --| (@{keyword "!"} -- @{keyword "["})) -- term --| @{keyword "]"}) >> Output
@@ -100,13 +101,14 @@ val triggerParser =
   eventParser --
   option ($$$ "<[" |-- term --| $$$ "]")
   >> (fn ((bg, ev), ed) => Trigger_ext (bg, ev, NONE, [], ed, ()))
+*)
 
 val transitionParser =
   (@{keyword "transition"} |-- name) --
     ($$$ "[" |--
       (@{keyword "frm"} |-- name) --
       (@{keyword "to"} |-- name) --
-      option triggerParser --
+      option (@{keyword "trigger"} |-- term) --
       option (@{keyword "probability"} |-- term) --
       option (@{keyword "condition"} |-- term) --
       option (@{keyword "action"} |-- term)

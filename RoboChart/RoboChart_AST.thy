@@ -9,8 +9,8 @@ text \<open> Here, we define the RoboChart AST using a series of HOL data types.
   We code generate all of these to ML, which allows them to be used for semantic generation. \<close>
 
 type_synonym ID = "String.literal"
-type_synonym uterm = "String.literal"
-type_synonym utyp = "String.literal"
+type_synonym uterm = "String.literal" \<comment> \<open> unprocessed terms \<close>
+type_synonym utyp = "String.literal"  \<comment> \<open> unprocessed types \<close> 
 
 datatype VariableModifier = VAR | CNST
 
@@ -82,8 +82,6 @@ fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarr
 definition mk_Interface :: "ID \<times> InterfaceDecl list \<Rightarrow> Interface" where
 "mk_Interface = (\<lambda> (n, its). fold upd_Interface its (emptyInterface\<lparr> ident := n \<rparr>))"
 
-value "mk_Interface (STR ''itf'', [VarDecl VAR [Variable ((STR ''x'', STR ''int''), None)], VarDecl VAR [Variable ((STR ''y'', STR ''int''), None)]])"
-
 text \<open> Same as the above, but for container-like structures (e.g. robotic platforms) \<close>
 
 fun upd_Container :: "ContainerDecl \<Rightarrow> 'a Container_scheme \<Rightarrow> 'a Container_scheme" where
@@ -97,10 +95,14 @@ definition mk_Container :: "ID \<times> ContainerDecl list \<Rightarrow> Contain
 
 type_synonym RoboticPlatform = ContainerDecl
 
+(* For now, triggers simply action terms (inner syntax) to be interpreted by the particular 
+  semantic model. *)
+
+(*
 datatype TriggerType =
   Input ID ID | 
   Output ID "uterm" | \<comment> \<open> unparsed term \<close>
-  Sync ID "term"
+  Sync ID "uterm"
 
 record Trigger =
   start   :: "uterm option"
@@ -108,11 +110,12 @@ record Trigger =
   time    :: "ID option"
   reset   :: "ID list"
   "end"   :: "uterm option"
-  
+*)  
+
 record Transition = Named +
   "from"        :: "ID"
   "to"          :: "ID"
-  "trigger"     :: "Trigger option"
+  "trigger"     :: "uterm option"
   "probability" :: "uterm option"
   "condition"   :: "uterm option"
   "action"      :: "uterm option"
@@ -164,8 +167,10 @@ code_reflect RC_AST
   and Interface_ext = Interface_ext
   and ContainerDecl = IntfDecl | UsesDecl | ProvDecl | ReqDecl
   and Container_ext = Container_ext
+(*
   and TriggerType = Input | Output | Sync
   and Trigger_ext = Trigger_ext
+*)
   and Transition_ext = Transition_ext
   and Action = Entry | During | Exit
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
