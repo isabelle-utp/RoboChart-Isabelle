@@ -17,12 +17,13 @@ definition add_free_types :: "(ID \<times> typ) list \<Rightarrow> term \<Righta
 
 fun func_body :: "Function \<Rightarrow> term" where
 "func_body (Func n ps t P Q) = 
-  (let Pt = constraint boolT (add_free_types ps P); 
-       Qt = constraint boolT (add_free_types ((STR ''result'', t) # ps) Q); 
+  (let res = STR ''result'';
+       Pt = constraint boolT (add_free_types ps P); 
+       Qt = constraint boolT (add_free_types ((res, t) # ps) Q); 
        p = mk_tuple (map (\<lambda> (i, t). Free i t) ps)
-   in mk_equals (free n) (const @{const_name fun_spec}) 
+   in mk_equals (free n) (const @{const_name fun_spec} 
       $ (tupled_lambda p Pt) 
-      $ (tupled_lambda p (tupled_lambda (Free (STR ''result'') t) Qt)))"
+      $ (tupled_lambda p (tupled_lambda (Free (res) t) Qt))))"
 
 code_reflect RC_Semantics
   functions add_free_types func_body
