@@ -14,13 +14,18 @@ definition Named_unique :: "'a Named_ext list \<Rightarrow> bool" where
 
 text \<open> We encode some the well-formedness constraints for interfaces below, and then code generate. \<close>
 
-fun validate_Interface :: "Interface \<Rightarrow> bool" where
+fun validate_Interface :: "'a Interface_scheme \<Rightarrow> bool" where
 "validate_Interface itf = 
   (Named_unique (variables itf @ constants itf) 
    \<and> Named_unique (operations itf)
    \<and> Named_unique (events itf))" 
 
+fun validate_StateMachine :: "StateMachineDef \<Rightarrow> bool" where
+"validate_StateMachine sm = 
+  (validate_Interface sm 
+  \<and> length (filter is_Initial (nodes sm)) = 1)" \<comment> \<open> there is exactly one initial node \<close>
+
 code_reflect RC_Validation
-  functions validate_Interface
+  functions validate_Interface validate_StateMachine
 
 end

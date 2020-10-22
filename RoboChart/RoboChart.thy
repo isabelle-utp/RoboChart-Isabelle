@@ -10,6 +10,7 @@ theory RoboChart
     "RoboChart_AST" 
     "RoboChart_Parser"
     "RoboChart_Validation"
+    "RoboChart_StateMachine"
     "RoboChart_Semantics"
 begin
 

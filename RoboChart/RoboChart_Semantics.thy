@@ -1,7 +1,7 @@
 section \<open> RoboChart Static Semantics \<close>
 
 theory RoboChart_Semantics
-  imports RoboChart_Validation RoboChart_Parser
+  imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine
   keywords "interface" "func" "robotic_platform" "stm" :: "thy_decl_block"
 begin
 
@@ -73,7 +73,16 @@ fun compileInterface itf thy =
   then RCInterfaces.map (Symtab.update (ident itf, itf)) thy
   else raise ROBOCHART_INVALID;
  
-fun compileStateMachine smd thy = thy;
+fun compileStateMachine s thy =
+  let val ctx = (Named_Target.theory_init thy)
+      val smd = RC_AST.mk_StateMachineDef s
+  in 
+    if (validate_StateMachine smd)
+    then let val smeq = check_term ctx (Logic.mk_equals (free (ident smd), RC_Stm.compile_StateMachineDef ctx smd))
+         in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), smeq) ctx))
+         end
+    else raise ROBOCHART_INVALID
+  end;
 
 end
 

@@ -120,14 +120,21 @@ record Transition = Named +
   "condition"   :: "uterm option"
   "action"      :: "uterm option"
 
-datatype Action = Entry ID | During ID | Exit ID
+datatype Action = Entry (act: uterm) | During (act: uterm) | Exit (act: uterm)
+
+fun is_Entry :: "Action \<Rightarrow> bool" where "is_Entry (Entry _) = True" | "is_Entry _ = False"
+fun is_During :: "Action \<Rightarrow> bool" where "is_During (During _) = True" | "is_During _ = False"
+fun is_Exit :: "Action \<Rightarrow> bool" where "is_Exit (Exit _) = True" | "is_Exit _ = False"
 
 datatype Node =
   State (sname: ID) (snodes: "Node list") (stransitions: "Transition list") (sactions: "Action list") |
-  Initial ID |
-  Junction ID |
-  Final ID |
-  ProbabilisticJunction ID
+  Initial (sname: ID) |
+  Junction (sname: ID) |
+  Final (sname: ID) |
+  ProbabilisticJunction (sname: ID)
+
+fun is_Initial :: "Node \<Rightarrow> bool" where "is_Initial (Initial _) = True" | "is_Initial _ = False"
+fun is_Final :: "Node \<Rightarrow> bool" where "is_Final (Final _) = True" | "is_Final _ = False"
 
 datatype StateMachineDecl = 
   StmContainerDecl ContainerDecl |
@@ -177,5 +184,6 @@ code_reflect RC_AST
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
 functions Variable ident ttyp variables mk_Interface mk_Container mk_StateMachineDef Transition_ext
+  "from" "to" "trigger" "probability" "condition" "action"
 
 end

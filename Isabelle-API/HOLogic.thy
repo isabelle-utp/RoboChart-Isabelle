@@ -69,6 +69,9 @@ definition "eq_const T = Const (STR ''HOL.eq'') (T --> T --> boolT)"
 
 definition "mk_eq t u = eq_const (fastype_of t) $ t $ u"
 
+consts mk_literal :: "String.literal \<Rightarrow> term"
+
+consts mk_list :: "typ \<Rightarrow> term list \<Rightarrow> term"
 
 (*
 (*abstraction over nested tuples*)
@@ -127,6 +130,8 @@ subsection \<open> Code Generation Axioms \<close>
 code_printing
   constant "tupled_lambda" \<rightharpoonup> (SML) "HOLogic.tupled'_lambda" |
   constant "mk_tuple" \<rightharpoonup> (SML) "HOLogic.mk'_tuple" |
-  constant "mk_eq" \<rightharpoonup> (SML) "HOLogic.mk'_eq (_, _)"
+  constant "mk_eq" \<rightharpoonup> (SML) "HOLogic.mk'_eq (_, _)" |
+  constant "mk_literal" \<rightharpoonup> (SML) "HOLogic.mk'_literal" |
+  constant "mk_list" \<rightharpoonup> (SML) "HOLogic.mk'_list"
 
 end
