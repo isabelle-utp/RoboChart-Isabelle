@@ -20,9 +20,9 @@ fun func_body :: "Function \<Rightarrow> term" where
   (let Pt = constraint boolT (add_free_types ps P); 
        Qt = constraint boolT (add_free_types ((STR ''result'', t) # ps) Q); 
        p = mk_tuple (map (\<lambda> (i, t). Free i t) ps)
-   in mk_equals (free n) (const (STR ''RoboChart_Semantics.fun_spec'') 
+   in mk_equals (free n) (const @{const_name fun_spec}) 
       $ (tupled_lambda p Pt) 
-      $ (tupled_lambda p (tupled_lambda (Free (STR ''result'') t) Qt))))"
+      $ (tupled_lambda p (tupled_lambda (Free (STR ''result'') t) Qt)))"
 
 code_reflect RC_Semantics
   functions add_free_types func_body

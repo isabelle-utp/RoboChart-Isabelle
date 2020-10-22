@@ -6,5 +6,5 @@
 (******************************************************************************)
 
 theory Isabelle_API
-  imports Term Type Logic HOLogic
+  imports Term Type Logic HOLogic Inner_Antiquotations
 begin end

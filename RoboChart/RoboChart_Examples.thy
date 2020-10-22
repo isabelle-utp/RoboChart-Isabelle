@@ -25,6 +25,11 @@ robotic_platform n =
   var x :: int
   requires f
 
+(* Linking this to the Circus semantics should be two step:
+   outer-syntax transitions with uninterpreted terms --> 
+   inner-syntax transitions with compiled actions and expressions (+ alphabet / channel context) --> 
+   state machine via semantic function *)
+
 stm s1 =
   var v1 :: int
   uses v
