@@ -14,6 +14,7 @@ session "Isabelle-API" in "Isabelle-API"
 session "RoboChart" in "RoboChart"
   = "Isabelle-API" +
   options [document = false, timeout = 1000]
+  sessions Optics
   theories
     RoboChart
   

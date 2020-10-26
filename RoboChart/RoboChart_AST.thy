@@ -20,6 +20,9 @@ record Named =
 record Typed = Named +
   ttyp :: "utyp"
 
+definition decl_of :: "'a Typed_scheme \<Rightarrow> ID \<times> utyp" where
+"decl_of x = (ident x, ttyp x)"
+
 record Variable = Typed +
   initial :: "uterm option" \<comment> \<open> unparsed term \<close>
 
@@ -32,8 +35,7 @@ record Parameterised = Named +
 record ODecl = Parameterised +
   terminate  :: bool
 
-record EDecl = Named +
-  etype :: "utyp"
+record EDecl = Typed +
   bcast :: bool
 
 text \<open> This is the syntactic representation of an interface element. The body of interface consists
@@ -77,7 +79,7 @@ fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarr
 "upd_Interface (VarDecl VAR vs) i = i\<lparr>variables := variables i @ vs\<rparr>" |
 "upd_Interface (ClockDecl n) i = i\<lparr>clocks := clocks i @ [n]\<rparr>" |
 "upd_Interface (OpDecl n ps t) i = i\<lparr>operations := operations i @ [\<lparr>ident = n, parameters = ps, terminate = t\<rparr>]\<rparr>" |
-"upd_Interface (EventDecl b es) i = i\<lparr>events := events i @ map (\<lambda> (n, t). \<lparr> ident = n, etype = t, bcast = b \<rparr>) es\<rparr>"
+"upd_Interface (EventDecl b es) i = i\<lparr>events := events i @ map (\<lambda> (n, t). \<lparr> ident = n, ttyp = t, bcast = b \<rparr>) es\<rparr>"
 
 definition mk_Interface :: "ID \<times> InterfaceDecl list \<Rightarrow> Interface" where
 "mk_Interface = (\<lambda> (n, its). fold upd_Interface its (emptyInterface\<lparr> ident := n \<rparr>))"
@@ -183,7 +185,8 @@ code_reflect RC_AST
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
-functions Variable ident ttyp variables mk_Interface mk_Container mk_StateMachineDef Transition_ext
-  "from" "to" "trigger" "probability" "condition" "action"
+functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
+  mk_StateMachineDef Transition_ext "from" "to" "trigger" "probability" 
+  "condition" "action" "constants" "events"
 
 end
