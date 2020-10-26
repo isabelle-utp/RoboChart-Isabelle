@@ -1,7 +1,7 @@
 section \<open> RoboChart Static Semantics \<close>
 
 theory RoboChart_Semantics
-  imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine
+  imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine "Optics.Optics"
   keywords "interface" "func" "robotic_platform" "stm" :: "thy_decl_block"
 begin
 
@@ -70,7 +70,8 @@ exception ROBOCHART_INVALID;
 
 fun compileInterface itf thy = 
   if (validate_Interface itf) 
-  then RCInterfaces.map (Symtab.update (ident itf, itf)) thy
+  then Dataspace.dataspace_cmd (ident itf) [] (map decl_of (constants itf)) [] (map decl_of (variables itf)) (map decl_of (events itf)) 
+        (RCInterfaces.map (Symtab.update (ident itf, itf)) thy)
   else raise ROBOCHART_INVALID;
  
 fun compileStateMachine s thy =
