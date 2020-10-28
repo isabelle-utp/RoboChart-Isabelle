@@ -1,5 +1,5 @@
 theory Logic
-  imports Term Type
+  imports Syntax 
 begin
 
 definition "mk_equals t u = 

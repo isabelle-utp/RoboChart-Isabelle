@@ -73,6 +73,13 @@ consts mk_literal :: "String.literal \<Rightarrow> term"
 
 consts mk_list :: "typ \<Rightarrow> term list \<Rightarrow> term"
 
+definition "mk_None = const @{const_name None}"
+
+definition "mk_Some t = const @{const_name Some} $ t"
+
+fun mk_option :: "term option \<Rightarrow> term" where
+"mk_option (Some t) = mk_Some t" | "mk_option None = mk_None"
+
 (*
 (*abstraction over nested tuples*)
 fun tupled_lambda (x as Free _) b = lambda x b

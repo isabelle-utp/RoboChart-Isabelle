@@ -21,6 +21,11 @@ interface i1 =
   broadcast event e1 :: "int \<times> string" e2 :: "bool"
   event v1 :: "string"
 
+context i1
+begin
+
+end
+
 robotic_platform n =
   var x :: int
   requires f
@@ -31,14 +36,15 @@ robotic_platform n =
    state machine via semantic function *)
 
 stm s1 =
+  var 
+    x :: int = "1"
+    y :: int = 1
   initial s1
   final s2
   final s3
   state s4 [entry "True"]
   transition t1 [frm s1 to s2 condition "True"]
   transition t2 [frm s1 to s2 condition "False"]
-
-thm s1_def
 
 stm s2 =
   var v1 :: int
@@ -58,7 +64,7 @@ func sqrt_alt(x :: real) :: real
   postcondition "result \<ge> 0 \<and> result\<^sup>2 = x"
 
 lemma sqrt_alt: "x \<ge> 0 \<Longrightarrow> sqrt_alt x = sqrt x"
-  by (auto simp add: sqrt_alt_def fun_spec_def) 
+  by (auto simp add: sqrt_alt_def fun_spec_def)
 
 func f2(x :: int, y :: int) :: int
   precondition "x > y"

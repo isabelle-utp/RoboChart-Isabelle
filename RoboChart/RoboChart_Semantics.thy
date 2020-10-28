@@ -39,8 +39,8 @@ open RC_AST;
 open RC_Validation;
 open RC_Semantics;
 
-type interface = unit interface_ext named_ext;
-type roboticPlatform = unit container_ext interface_ext named_ext;
+type interface = unit RC_AST.interface_ext RC_AST.named_ext;
+type roboticPlatform = unit RC_AST.container_ext RC_AST.interface_ext RC_AST.named_ext;
 
 structure RCInterfaces = Theory_Data
   (type T = interface Symtab.table
@@ -71,15 +71,17 @@ exception ROBOCHART_INVALID;
 fun compileInterface itf thy = 
   if (validate_Interface itf) 
   then Dataspace.dataspace_cmd (ident itf) [] (map decl_of (constants itf)) [] (map decl_of (variables itf)) (map decl_of (events itf)) 
-        (RCInterfaces.map (Symtab.update (ident itf, itf)) thy)
+        ((*RCInterfaces.map (Symtab.update (ident itf, itf))*) thy)
   else raise ROBOCHART_INVALID;
  
-fun compileStateMachine s thy =
-  let val ctx = (Named_Target.theory_init thy)
-      val smd = RC_AST.mk_StateMachineDef s
+val machineN = "machine";
+
+fun compileStateMachine (n, defs) thy =
+  let val smd = RC_AST.mk_StateMachineDef (n, defs)
+      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ n) (compileInterface smd thy))
   in 
     if (validate_StateMachine smd)
-    then let val smeq = check_term ctx (Logic.mk_equals (free (ident smd), RC_Stm.compile_StateMachineDef ctx smd))
+    then let val smeq = check_term ctx (Logic.mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
          in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), smeq) ctx))
          end
     else raise ROBOCHART_INVALID

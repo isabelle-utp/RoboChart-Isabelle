@@ -1,7 +1,7 @@
 section \<open> RoboChart AST with HOL terms and types \<close>
 
 theory RoboChart_AST
-  imports "Isabelle-API.Isabelle_API"
+  imports "Isabelle-API.Isabelle_API" "HOL-Eisbach.Eisbach"
 begin
 
 text \<open> Here, we define the RoboChart AST using a series of HOL data types. We also define some 
@@ -64,9 +64,9 @@ abbreviation "emptyInterface \<equiv>
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [] \<rparr>"
 
 record Container = Interface +
-  uses     :: "ID list"
-  provides :: "ID list"
-  requires :: "ID list"
+  "uses"     :: "ID list"
+  "provides" :: "ID list"
+  "requires" :: "ID list"
 
 abbreviation "emptyContainer \<equiv> 
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [], uses = [], provides = [], requires = [] \<rparr>"

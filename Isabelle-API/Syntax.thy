@@ -1,7 +1,7 @@
 section \<open> Syntax \<close>
 
 theory Syntax
-  imports Term Proof
+  imports Term Proof Inner_Antiquotations
 begin
 
 subsection \<open> Functions \<close>
