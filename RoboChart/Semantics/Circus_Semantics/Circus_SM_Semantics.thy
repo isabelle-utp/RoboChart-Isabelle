@@ -82,15 +82,31 @@ lemma sm_semantics_subst_ctrl:
   "[&rc_ctrl \<mapsto>\<^sub>s \<guillemotleft>k\<guillemotright>] \<dagger> node_semantics M null_event node = node_semantics M null_event node"
   by (simp add: node_semantics_def action_simp frame_asubst tr_choice_subst_ctrl unrest)
 
+(* Tests *)
+
+dataspace stm_context =
+  channels null_event :: unit 
+
+context stm_context
+begin
+
+notation null_event ("\<epsilon>")
+
+end
+
 stm stm1 =
   var x :: int
+  event e :: unit
   initial s1
-  transition t1 [frm s1 to s2 condition "U(x = 0)" action "act(x := 1)"]
+  final s2
+  transition t1 [frm s1 to s2 condition "U(x = 0)" action "act(x := 1 ; e)"]
 
 context stm1
 begin
 
 thm machine_def
+
+term "\<lbrakk>machine\<rbrakk>\<^sub>M"
 
 end
 

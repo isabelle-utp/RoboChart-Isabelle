@@ -33,14 +33,13 @@ ML \<open>
 structure RC_Compiler =
 struct
 
-open HOLogic;
-open Syntax;
 open RC_AST;
 open RC_Validation;
 open RC_Semantics;
 
 type interface = unit RC_AST.interface_ext RC_AST.named_ext;
 type roboticPlatform = unit RC_AST.container_ext RC_AST.interface_ext RC_AST.named_ext;
+type stateMachineDef = unit stateMachineDef_ext RC_AST.container_ext RC_AST.interface_ext RC_AST.named_ext
 
 structure RCInterfaces = Theory_Data
   (type T = interface Symtab.table
@@ -54,13 +53,31 @@ structure RCPlatforms = Theory_Data
    val extend = I
    val merge = Symtab.merge (K true));
 
-fun compileDummy _ thy = thy;
+(* Semantic processors *)
+
+type RCSem_Proc = 
+  { itf_sem: interface -> theory -> theory
+  , rpl_sem: roboticPlatform -> theory -> theory
+  , stm_sem: stateMachineDef -> theory -> theory
+  }
+
+val null_RCSem_Proc = 
+  { itf_sem = K I, rpl_sem = K I, stm_sem = K I }
+
+structure Stm_Sem = Theory_Data
+  (type T = RCSem_Proc
+   val empty = null_RCSem_Proc
+   val extend = I
+   val merge = fn (_, x) => x);
 
 fun compileFuncDecl ctx (FuncDecl (n, ps, t, P, Q)) =
-  Func (n, map (fn (p, t) => (p, read_typ ctx t)) ps, read_typ ctx t, parse_term ctx P, parse_term ctx Q);
+  let open Syntax in
+    Func (n, map (fn (p, t) => (p, read_typ ctx t)) ps, read_typ ctx t, parse_term ctx P, parse_term ctx Q)
+  end;
 
 fun compileFunction x thy = 
-  let val ctx = (Named_Target.theory_init thy)
+  let open Syntax
+      val ctx = (Named_Target.theory_init thy)
       val f = check_term ctx (func_body (compileFuncDecl ctx x))
   in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), f) ctx))
 
@@ -76,14 +93,24 @@ fun compileInterface itf thy =
  
 val machineN = "machine";
 
+(* Create a local context with variables and events, and generate a semantic state machine *)
+
+fun context_Stm_Semantics smd thy = 
+  let open Syntax
+      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) (compileInterface smd thy))
+      val smeq = check_term ctx (Logic.mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
+  in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), smeq) ctx))
+  end;
+
+val ctx_semantics: RCSem_Proc = 
+  { itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics }
+
 fun compileStateMachine (n, defs) thy =
   let val smd = RC_AST.mk_StateMachineDef (n, defs)
-      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ n) (compileInterface smd thy))
   in 
     if (validate_StateMachine smd)
-    then let val smeq = check_term ctx (Logic.mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
-         in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), smeq) ctx))
-         end
+    (* Get the current semantic processor *)
+    then #stm_sem (Stm_Sem.get thy) smd thy
     else raise ROBOCHART_INVALID
   end;
 
@@ -104,6 +131,12 @@ val _ =
 val _ =
   Outer_Syntax.command @{command_keyword stm} "define RoboChart state machines"
     (RC_Parser.stateMachineDefParser >> (Toplevel.theory o RC_Compiler.compileStateMachine));
+\<close>
+
+text \<open> Set the default semantic processor \<close>
+
+setup \<open>
+  RC_Compiler.Stm_Sem.put (RC_Compiler.ctx_semantics)
 \<close>
 
 end
