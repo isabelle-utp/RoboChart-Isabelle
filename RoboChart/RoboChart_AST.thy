@@ -187,6 +187,6 @@ code_reflect RC_AST
   and StateMachineDef_ext = StateMachineDef_ext
 functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
   mk_StateMachineDef Transition_ext "from" "to" "trigger" "probability" 
-  "condition" "action" "constants" "events"
+  "condition" "action" "constants" "events" "nodes" "transitions"
 
 end

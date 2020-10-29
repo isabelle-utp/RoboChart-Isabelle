@@ -130,6 +130,9 @@ definition compile_Transition :: "Proof.context \<Rightarrow> Transition \<Right
   $ read_opt_term ctx (condition t)
   $ read_opt_term ctx (action t)"
 
+definition compile_Transition_defn :: "Proof.context \<Rightarrow> Transition \<Rightarrow> term" where
+"compile_Transition_defn ctx tr = mk_equals (free (ident tr)) (compile_Transition ctx tr)"
+
 definition "basic_Node n = SNode n None None None [] []"
 
 definition get_Entry :: "Action list \<Rightarrow> uterm option" where
@@ -159,6 +162,9 @@ fun compile_Node :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
   $ mk_list dummyT (map (compile_Node ctx) ns)
   $ mk_list dummyT (map (compile_Transition ctx) ts)"
 
+definition compile_Node_defn :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
+"compile_Node_defn ctx node = mk_equals (free (sname node)) (compile_Node ctx node)"
+
 definition get_Initial :: "Node list \<Rightarrow> ID" where
 "get_Initial ns = sname (the (find is_Initial ns))"
 
@@ -170,14 +176,15 @@ definition compile_StateMachineDef :: "Proof.context \<Rightarrow> StateMachineD
   const @{const_name SStateMachine}
   $ mk_literal (get_Initial (nodes sm))
   $ mk_list dummyT (map mk_literal (get_Finals (nodes sm)))
-  $ mk_list dummyT (map (compile_Node ctx) (nodes sm))
-  $ mk_list dummyT (map (compile_Transition ctx) (transitions sm))"
+  $ mk_list dummyT (map (free \<circ> sname) (nodes sm))
+  $ mk_list dummyT (map (free \<circ> ident) (transitions sm))"
 
 code_reflect RC_Stm
-  functions compile_StateMachineDef
-
-ML \<open>
-  Syntax.check_term @{context} (@{code compile_Transition} @{context} (RC_AST.Named_ext ("t1", (RC_AST.Transition_ext ("s1", "s2", NONE, NONE, NONE, NONE, ())))))
-\<close>
+  functions 
+    compile_Transition 
+    compile_Transition_defn
+    compile_Node
+    compile_Node_defn
+    compile_StateMachineDef
 
 end

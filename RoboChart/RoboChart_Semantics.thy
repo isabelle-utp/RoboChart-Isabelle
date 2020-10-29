@@ -96,10 +96,17 @@ val machineN = "machine";
 (* Create a local context with variables and events, and generate a semantic state machine *)
 
 fun context_Stm_Semantics smd thy = 
-  let open Syntax
+  let open Syntax; open Logic; open RC_Stm; open Specification
       val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) (compileInterface smd thy))
-      val smeq = check_term ctx (Logic.mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
-  in Local_Theory.exit_global (snd (Specification.definition NONE [] [] ((Binding.empty, []), smeq) ctx))
+      (* State definitions *)
+      val seqs = map (check_term ctx o compile_Node_defn ctx) (nodes smd)
+      val teqs = map (check_term ctx o compile_Transition_defn ctx) (transitions smd)
+      val smeq = check_term ctx (mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
+  in Local_Theory.exit_global 
+      ((  fold (fn seq => snd o definition NONE [] [] ((Binding.empty, []), seq)) seqs
+       #> fold (fn teq => snd o definition NONE [] [] ((Binding.empty, []), teq)) teqs
+       #> snd o definition NONE [] [] ((Binding.empty, []), smeq)
+       ) ctx)
   end;
 
 val ctx_semantics: RCSem_Proc = 
