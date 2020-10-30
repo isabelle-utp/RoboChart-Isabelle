@@ -4,7 +4,7 @@ begin
 
 text \<open> We can't use braces, because they are both designated as major keywords in Isar. \<close>
 
-interface i1 =
+interface itf1 =
   clock
     myclk
   var 
@@ -21,7 +21,7 @@ interface i1 =
   broadcast event e1 :: "int \<times> string" e2 :: "bool"
   event v1 :: "string"
 
-context i1
+context itf1
 begin
 
 end
@@ -46,11 +46,15 @@ stm stm1 =
 context stm1
 begin
 
+term s1
+
+term machine
+
 thm machine_def
 
-thm t1_def
-
 end
+
+term i1
 
 
 stm s2 =
@@ -61,10 +65,18 @@ stm s2 =
   var v2 :: real
   broadcast event e1 :: real e2 :: int e3 :: string
   state ms [entry "True" exit "True"]
-  transition t1 [frm i1 to act trigger "True" probability "0.5::real" condition "True"]
-  transition t2 [frm p1 to act trigger "False" probability "0.1::real" condition "False"]
+  transition t1 [frm i1 to act trigger "True" probability "0.5" condition "True"]
+  transition t2 [frm p1 to act trigger "False" probability "0.1" condition "False"]
   probabilistic p1
   event e4 :: string
+
+context s2
+begin
+
+thm machine_def
+thm t1_def
+
+end
 
 func sqrt_alt(x :: real) :: real
   precondition "x \<ge> 0"

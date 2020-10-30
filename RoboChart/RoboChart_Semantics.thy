@@ -55,14 +55,26 @@ structure RCPlatforms = Theory_Data
 
 (* Semantic processors *)
 
+type PredType = typ -> typ
+type ActionType = typ -> typ -> typ
+type ProbType = typ -> typ
+
 type RCSem_Proc = 
-  { itf_sem: interface -> theory -> theory
+  { predT: PredType
+  , actionT: ActionType
+  , probT: ProbType
+  , itf_sem: interface -> theory -> theory
   , rpl_sem: roboticPlatform -> theory -> theory
   , stm_sem: stateMachineDef -> theory -> theory
   }
 
+val null_predT: PredType = K @{typ bool}
+val null_actionT: ActionType = K (K @{typ bool})
+val null_probT: ProbType = K @{typ real}
+
 val null_RCSem_Proc = 
-  { itf_sem = K I, rpl_sem = K I, stm_sem = K I }
+  { predT = null_predT, actionT = null_actionT, probT = null_probT
+  , itf_sem = K I, rpl_sem = K I, stm_sem = K I }
 
 structure Stm_Sem = Theory_Data
   (type T = RCSem_Proc
@@ -95,13 +107,18 @@ val machineN = "machine";
 
 (* Create a local context with variables and events, and generate a semantic state machine *)
 
+fun stransitionT predT actT probT = Type (@{type_name STransition}, [predT, actT, probT])
+
 fun context_Stm_Semantics smd thy = 
   let open Syntax; open Logic; open RC_Stm; open Specification
       val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) (compileInterface smd thy))
+      val predT = #predT (Stm_Sem.get thy) Lens_Lib.astateT
+      val actionT = #actionT (Stm_Sem.get thy) Lens_Lib.astateT Dataspace.achanT
+      val probT = #probT (Stm_Sem.get thy) Lens_Lib.astateT
       (* State definitions *)
-      val seqs = map (check_term ctx o compile_Node_defn ctx) (nodes smd)
-      val teqs = map (check_term ctx o compile_Transition_defn ctx) (transitions smd)
-      val smeq = check_term ctx (mk_equals (free machineN, RC_Stm.compile_StateMachineDef ctx smd))
+      val seqs = map (check_term ctx o compile_Node_defn ctx predT actionT probT) (nodes smd)
+      val teqs = map (check_term ctx o compile_Transition_defn ctx predT actionT probT) (transitions smd)
+      val smeq = check_term ctx (RC_Stm.compile_StateMachineDef_defn ctx predT actionT probT smd)
   in Local_Theory.exit_global 
       ((  fold (fn seq => snd o definition NONE [] [] ((Binding.empty, []), seq)) seqs
        #> fold (fn teq => snd o definition NONE [] [] ((Binding.empty, []), teq)) teqs
@@ -109,8 +126,9 @@ fun context_Stm_Semantics smd thy =
        ) ctx)
   end;
 
-val ctx_semantics: RCSem_Proc = 
-  { itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics }
+fun ctx_semantics prT actT prbT = 
+  { predT = prT, actionT = actT, probT = prbT
+  , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics } : RCSem_Proc
 
 fun compileStateMachine (n, defs) thy =
   let val smd = RC_AST.mk_StateMachineDef (n, defs)
@@ -143,7 +161,9 @@ val _ =
 text \<open> Set the default semantic processor \<close>
 
 setup \<open>
-  RC_Compiler.Stm_Sem.put (RC_Compiler.ctx_semantics)
+  let open RC_Compiler in
+  Stm_Sem.put (ctx_semantics null_predT null_actionT null_probT)
+  end
 \<close>
 
 end

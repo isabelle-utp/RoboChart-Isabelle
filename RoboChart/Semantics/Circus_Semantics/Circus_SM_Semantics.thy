@@ -84,6 +84,20 @@ lemma sm_semantics_subst_ctrl:
 
 (* Tests *)
 
+definition "circus_predT stT = Type @{type_name upred} [stT]"
+definition "circus_actionT stT evT = Type @{type_name Action} [stT, evT]"
+definition "circus_probT stT = @{typ unit}"
+
+code_reflect RC_Circus_Semantics
+  functions circus_predT circus_actionT circus_probT
+
+setup \<open>
+  let open RC_Compiler; open RC_Circus_Semantics in
+  Stm_Sem.put (ctx_semantics circus_predT circus_actionT circus_probT)
+  end
+\<close>
+
+
 dataspace stm_context =
   channels null_event :: unit 
 
@@ -104,7 +118,9 @@ stm stm1 =
 context stm1
 begin
 
-thm machine_def
+thm t1_def
+
+term machine
 
 term "\<lbrakk>machine\<rbrakk>\<^sub>M"
 

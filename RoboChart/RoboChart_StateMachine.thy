@@ -118,20 +118,23 @@ method check_machine uses defs =
 
 subsection \<open> Compilation of Semantic State Machines \<close>
 
-abbreviation "read_opt_term ctx u \<equiv> mk_option (map_option (read_term ctx) u)"
+abbreviation "parse_opt_term ctx u \<equiv> mk_option (map_option (parse_term ctx) u)"
 
 definition compile_Transition :: "Proof.context \<Rightarrow> Transition \<Rightarrow> term" where
 "compile_Transition ctx t = 
   const @{const_name STransition} 
   $ mk_literal (from t)
   $ mk_literal (to t)
-  $ read_opt_term ctx (trigger t)
-  $ read_opt_term ctx (probability t)
-  $ read_opt_term ctx (condition t)
-  $ read_opt_term ctx (action t)"
+  $ parse_opt_term ctx (trigger t)
+  $ parse_opt_term ctx (probability t)
+  $ parse_opt_term ctx (condition t)
+  $ parse_opt_term ctx (action t)"
 
-definition compile_Transition_defn :: "Proof.context \<Rightarrow> Transition \<Rightarrow> term" where
-"compile_Transition_defn ctx tr = mk_equals (free (ident tr)) (compile_Transition ctx tr)"
+definition compile_Transition_defn :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Transition \<Rightarrow> term" where
+"compile_Transition_defn ctx predT actT probT tr 
+  = mk_equals 
+      (Free (ident tr) (Type @{type_name STransition} [predT, actT, probT])) 
+      (compile_Transition ctx tr)"
 
 definition "basic_Node n = SNode n None None None [] []"
 
@@ -156,14 +159,17 @@ fun compile_Node :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
 "compile_Node ctx (State n ns ts acts) = 
   const @{const_name SNode}
   $ mk_literal n
-  $ read_opt_term ctx (get_Entry acts)
-  $ read_opt_term ctx (get_During acts)
-  $ read_opt_term ctx (get_Exit acts)
+  $ parse_opt_term ctx (get_Entry acts)
+  $ parse_opt_term ctx (get_During acts)
+  $ parse_opt_term ctx (get_Exit acts)
   $ mk_list dummyT (map (compile_Node ctx) ns)
   $ mk_list dummyT (map (compile_Transition ctx) ts)"
 
-definition compile_Node_defn :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
-"compile_Node_defn ctx node = mk_equals (free (sname node)) (compile_Node ctx node)"
+definition compile_Node_defn :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term" where
+"compile_Node_defn ctx predT actT probT node
+  = mk_equals 
+      (Free (sname node) (Type @{type_name SNode} [predT, actT, probT])) 
+      (compile_Node ctx node)"
 
 definition get_Initial :: "Node list \<Rightarrow> ID" where
 "get_Initial ns = sname (the (find is_Initial ns))"
@@ -179,6 +185,15 @@ definition compile_StateMachineDef :: "Proof.context \<Rightarrow> StateMachineD
   $ mk_list dummyT (map (free \<circ> sname) (nodes sm))
   $ mk_list dummyT (map (free \<circ> ident) (transitions sm))"
 
+definition "machineN = STR ''machine''"
+
+definition compile_StateMachineDef_defn 
+  :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> StateMachineDef \<Rightarrow> term" where
+"compile_StateMachineDef_defn ctx predT actT probT smd
+  = mk_equals 
+      (Free machineN (Type @{type_name SStateMachine} [predT, actT, probT])) 
+      (compile_StateMachineDef ctx smd)"
+
 code_reflect RC_Stm
   functions 
     compile_Transition 
@@ -186,5 +201,6 @@ code_reflect RC_Stm
     compile_Node
     compile_Node_defn
     compile_StateMachineDef
+    compile_StateMachineDef_defn
 
 end
