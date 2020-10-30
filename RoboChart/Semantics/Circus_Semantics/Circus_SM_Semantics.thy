@@ -64,7 +64,17 @@ definition node_semantics ::
    (foldr (\<box>) (map (\<lambda> t. \<lbrakk>t\<rbrakk>\<^sub>T null_event) (the (Tmap\<^bsub>M\<^esub> (n_name node)))) stop) ;
    rc_state:[n_exit_sem node]\<^sub>A\<^sup>+)"
 
-definition sm_semantics :: "('s, 'e) RStateMachine \<Rightarrow> (unit, 'e) chan \<Rightarrow> ('s, 'e) RoboAction" ("\<lbrakk>_\<rbrakk>\<^sub>M") where
+dataspace stm_context =
+  channels null_event :: unit 
+
+context stm_context
+begin
+
+notation null_event ("\<epsilon>")
+
+end
+
+definition sm_semantics :: "('st, 'ch) RStateMachine \<Rightarrow> _ \<Rightarrow> ('st, 'ch) RoboAction" ("\<lbrakk>_\<rbrakk>\<^sub>M") where
 "sm_semantics M null_event = 
     (rc_ctrl := \<guillemotleft>sm_initial M\<guillemotright> ;
     iteration (map (\<lambda> n. (&rc_ctrl =\<^sub>u \<guillemotleft>n_name n\<guillemotright>, M;null_event \<turnstile> \<lbrakk>n\<rbrakk>\<^sub>N)) (sm_inters M)))"
@@ -91,20 +101,32 @@ definition "circus_probT stT = @{typ unit}"
 definition "actionN = STR ''action''"
 
 definition "action_eq = 
-  mk_equals (free actionN) (const @{const_name sm_semantics} $ free machineN)"
+  mk_equals (free actionN) (const @{const_name sm_semantics} $ free machineN $ free STR ''null_event'')"
+
+definition "add_stm_context smd = 
+  smd\<lparr> uses := STR ''stm_context'' # uses smd \<rparr>"
 
 code_reflect RC_Circus_Semantics
-  functions circus_predT circus_actionT circus_probT action_eq
+  functions circus_predT circus_actionT circus_probT action_eq add_stm_context
 
 setup \<open>
   let open RC_Compiler; open RC_Circus_Semantics; open Specification
     val cont = snd o definition NONE [] [] ((Binding.empty, []), action_eq)
+    val circus_semantics = 
+      { predT = circus_predT, actionT = circus_actionT, probT = circus_probT
+     , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics cont o add_stm_context } : RCSem_Proc
+
   in
-    Stm_Sem.put (ctx_semantics cont circus_predT circus_actionT circus_probT)
+    Stm_Sem.put circus_semantics
   end
 \<close>
 
+context stm_context
+begin
 
+term null_event
+
+end
 
 stm stm1 =
   var x :: int
@@ -116,13 +138,13 @@ stm stm1 =
 context stm1
 begin
 
+term null_event
+
 thm t1_def
 
 term machine
 
 term "action"
-
-term "\<lbrakk>machine\<rbrakk>\<^sub>M"
 
 end
 
