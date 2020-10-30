@@ -99,10 +99,25 @@ exception ROBOCHART_INVALID;
 
 fun compileInterface itf thy = 
   if (validate_Interface itf) 
-  then Dataspace.dataspace_cmd (ident itf) [] (map decl_of (constants itf)) [] (map decl_of (variables itf)) (map decl_of (events itf)) 
+  then Dataspace.dataspace_cmd 
+        (ident itf) [] 
+        (map decl_of (constants itf)) [] 
+        (map decl_of (variables itf)) 
+        (map decl_of (events itf)) 
         ((*RCInterfaces.map (Symtab.update (ident itf, itf))*) thy)
   else raise ROBOCHART_INVALID;
- 
+
+fun compileContainer cnt thy = 
+  if (validate_Interface cnt) (* FIXME: Proper container validation *)
+  then Dataspace.dataspace_cmd 
+        (ident cnt) (uses cnt) 
+        (map decl_of (constants cnt)) [] 
+        (map decl_of (variables cnt)) 
+        (map decl_of (events cnt)) 
+        ((*RCInterfaces.map (Symtab.update (ident itf, itf))*) thy)
+  else raise ROBOCHART_INVALID;
+
+
 val machineN = "machine";
 
 (* Create a local context with variables and events, and generate a semantic state machine *)
@@ -111,7 +126,8 @@ fun stransitionT predT actT probT = Type (@{type_name STransition}, [predT, actT
 
 fun context_Stm_Semantics cont smd thy = 
   let open Syntax; open Logic; open RC_Stm; open Specification
-      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) (compileInterface smd thy))
+      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) 
+                  (compileContainer smd thy))
       val predT = #predT (Stm_Sem.get thy) Lens_Lib.astateT
       val actionT = #actionT (Stm_Sem.get thy) Lens_Lib.astateT Dataspace.achanT
       val probT = #probT (Stm_Sem.get thy) Lens_Lib.astateT

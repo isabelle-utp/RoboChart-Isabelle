@@ -18,8 +18,7 @@ interface itf1 =
     myop(x :: int, y :: nat) [terminates]
   opdecl
     myop2(v :: string)
-  broadcast event e1 :: "int \<times> string" e2 :: "bool"
-  event v1 :: "string"
+  broadcast event ev1 :: "int \<times> string" ev2 :: "bool"
 
 context itf1
 begin
@@ -59,7 +58,7 @@ term i1
 
 stm s2 =
   var v1 :: int
-  uses v
+  uses itf1
   initial i1
   final f
   var v2 :: real

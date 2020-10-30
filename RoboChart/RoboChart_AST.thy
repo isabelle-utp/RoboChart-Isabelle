@@ -188,5 +188,6 @@ code_reflect RC_AST
 functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
   mk_StateMachineDef Transition_ext "from" "to" "trigger" "probability" 
   "condition" "action" "constants" "events" "nodes" "transitions"
+   "uses" "provides" "requires"
 
 end
