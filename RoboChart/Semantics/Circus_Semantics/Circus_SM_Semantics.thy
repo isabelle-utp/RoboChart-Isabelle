@@ -88,25 +88,23 @@ definition "circus_predT stT = Type @{type_name upred} [stT]"
 definition "circus_actionT stT evT = Type @{type_name Action} [stT, evT]"
 definition "circus_probT stT = @{typ unit}"
 
+definition "actionN = STR ''action''"
+
+definition "action_eq = 
+  mk_equals (free actionN) (const @{const_name sm_semantics} $ free machineN)"
+
 code_reflect RC_Circus_Semantics
-  functions circus_predT circus_actionT circus_probT
+  functions circus_predT circus_actionT circus_probT action_eq
 
 setup \<open>
-  let open RC_Compiler; open RC_Circus_Semantics in
-  Stm_Sem.put (ctx_semantics circus_predT circus_actionT circus_probT)
+  let open RC_Compiler; open RC_Circus_Semantics; open Specification
+    val cont = snd o definition NONE [] [] ((Binding.empty, []), action_eq)
+  in
+    Stm_Sem.put (ctx_semantics cont circus_predT circus_actionT circus_probT)
   end
 \<close>
 
 
-dataspace stm_context =
-  channels null_event :: unit 
-
-context stm_context
-begin
-
-notation null_event ("\<epsilon>")
-
-end
 
 stm stm1 =
   var x :: int
@@ -121,6 +119,8 @@ begin
 thm t1_def
 
 term machine
+
+term "action"
 
 term "\<lbrakk>machine\<rbrakk>\<^sub>M"
 

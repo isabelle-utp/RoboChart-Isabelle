@@ -109,7 +109,7 @@ val machineN = "machine";
 
 fun stransitionT predT actT probT = Type (@{type_name STransition}, [predT, actT, probT])
 
-fun context_Stm_Semantics smd thy = 
+fun context_Stm_Semantics cont smd thy = 
   let open Syntax; open Logic; open RC_Stm; open Specification
       val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) (compileInterface smd thy))
       val predT = #predT (Stm_Sem.get thy) Lens_Lib.astateT
@@ -123,12 +123,13 @@ fun context_Stm_Semantics smd thy =
       ((  fold (fn seq => snd o definition NONE [] [] ((Binding.empty, []), seq)) seqs
        #> fold (fn teq => snd o definition NONE [] [] ((Binding.empty, []), teq)) teqs
        #> snd o definition NONE [] [] ((Binding.empty, []), smeq)
+       #> cont
        ) ctx)
   end;
 
-fun ctx_semantics prT actT prbT = 
+fun ctx_semantics cont prT actT prbT = 
   { predT = prT, actionT = actT, probT = prbT
-  , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics } : RCSem_Proc
+  , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics cont } : RCSem_Proc
 
 fun compileStateMachine (n, defs) thy =
   let val smd = RC_AST.mk_StateMachineDef (n, defs)
@@ -162,7 +163,7 @@ text \<open> Set the default semantic processor \<close>
 
 setup \<open>
   let open RC_Compiler in
-  Stm_Sem.put (ctx_semantics null_predT null_actionT null_probT)
+  Stm_Sem.put (ctx_semantics I null_predT null_actionT null_probT)
   end
 \<close>
 
