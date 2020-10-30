@@ -6,11 +6,9 @@ begin
 
 syntax
   "_inner_const_name" :: "id \<Rightarrow> logic" ("@{const'_name _}")
+  "_inner_const_name" :: "longid \<Rightarrow> logic" ("@{const'_name _}")
   "_inner_type_name"  :: "type \<Rightarrow> logic" ("@{type'_name _}")
   "_inner_typ"        :: "type \<Rightarrow> logic" ("@{typ _}")
-
-ML \<open> 
-\<close>
 
 parse_translation \<open>
 let
