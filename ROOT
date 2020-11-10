@@ -5,7 +5,7 @@
 (* Emails: simon.foster@york.ac.uk                                            *)
 (******************************************************************************)
 
-session "RoboChart" in "RoboChart"
+session "RoboChart"
   = "Isabelle-API" +
   options [document = false, timeout = 1000]
   sessions Optics
