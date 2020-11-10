@@ -8,6 +8,7 @@ theory RoboChart_Parser
     "uses" "provides" "requires"
     "state" "entry" "during" "exit" "probabilistic" "initial" "final" "junction"
     "transition" "frm" "to" "trigger" "probability" "condition" "action" "!" "?" "]>" "<["
+    "operation" "opref" "sref" "rref" "cref" "connection" "on" "async" "mult"
 begin
 
 text \<open> We define a set of parser combinators for the RoboChart commands. These simply produce 
@@ -68,14 +69,8 @@ val usesParser = @{keyword uses} |-- name >> UsesDecl;
 val provParser = @{keyword provides} |-- name >> ProvDecl;
 val reqParser = @{keyword requires} |-- name >> ReqDecl;
 
-val containerParser =
+val containerDeclParser =
   (intfKeyParser >> IntfDecl) || usesParser || provParser || reqParser;
-
-val roboticPlatformParser =
-  (name -- 
-    (@{keyword "="} |--
-      repeat1 containerParser
-    )) >> mk_Container;
   
 val actionParser =
   (@{keyword "entry"} |-- name >> Entry) || 
@@ -115,14 +110,52 @@ val transitionParser =
      --| $$$ "]") >> (fn (n, (((((s, t), tr), p), c), a)) => Named_ext (n, Transition_ext (s, t, tr, p, c, a, ())));
 
 val stateMachineBodyParser = 
-  (containerParser >> StmContainerDecl) || (nodeParser >> NodeDecl) || (transitionParser >> TransitionDecl) ;
-
+  (containerDeclParser >> StmContainerDecl) || (nodeParser >> NodeDecl) || (transitionParser >> TransitionDecl) ;
 
 val stateMachineDefParser =
   (name --
     (@{keyword "="} |--
       repeat1 stateMachineBodyParser
     ));
+
+val connectionParser =
+  ((@{keyword connection} |-- name) 
+  -- (@{keyword on} |-- name)
+  -- (@{keyword to} |-- name)
+  -- (@{keyword on} |-- name)
+  -- Scan.optional (@{keyword async} >> K true) false
+  -- Scan.optional (@{keyword mult} >> K true) false
+  ) >> (fn (((((f,o1),t),o2),a),m) => Connection ((f, o1), (t, o2), a, m))
+
+val controllerDeclParser =
+  (containerDeclParser >> CtrlContainerDecl) ||
+  (connectionParser >> ConnectionDecl) ||
+  (((@{keyword "sref"} |-- name) -- (@{keyword "="} |-- name)) >> StmRefDecl) ||
+  (((@{keyword "opref"} |-- name) -- (@{keyword "="} |-- name)) >> OpRefDecl)
+
+val controllerParser =
+  (name --
+    (@{keyword "="} |--
+      repeat1 controllerDeclParser
+    )) >> mk_Controller;
+
+val roboticPlatformParser =
+  (name -- 
+    (@{keyword "="} |--
+      repeat1 containerDeclParser
+    )) >> mk_Container;
+
+val moduleDeclParser =
+  (containerDeclParser >> RCModuleContainerDecl) ||
+  (connectionParser >> ModConnectionDecl) ||
+  (((@{keyword "cref"} |-- name) -- (@{keyword "="} |-- name)) >> CRefDecl) ||
+  (((@{keyword "rref"} |-- name) -- (@{keyword "="} |-- name)) >> RRefDecl)
+
+val moduleParser =
+  (name --
+    (@{keyword "="} |--
+      repeat1 moduleDeclParser
+    )) >> mk_RCModule;
 
 val functionParser =
   (name -- parameterParser -- ($$$ "::" |-- typ) --

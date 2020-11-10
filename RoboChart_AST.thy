@@ -35,6 +35,11 @@ record Parameterised = Named +
 record ODecl = Parameterised +
   terminate  :: bool
 
+record ODef = ODecl +
+  precondition  :: uterm
+  postcondition :: uterm
+  (* TBD *)
+
 record EDecl = Typed +
   bcast :: bool
 
@@ -51,7 +56,7 @@ record Interface = Named +
   constants  :: "Variable list"
   variables  :: "Variable list"
   clocks     :: "ID list"
-  operations :: "ODecl list"
+  opdecls    :: "ODecl list"
   events     :: "EDecl list"
 
 datatype ContainerDecl =
@@ -61,7 +66,7 @@ datatype ContainerDecl =
   ReqDecl ID
 
 abbreviation "emptyInterface \<equiv> 
-  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [] \<rparr>"
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = [] \<rparr>"
 
 record Container = Interface +
   "uses"     :: "ID list"
@@ -69,7 +74,7 @@ record Container = Interface +
   "requires" :: "ID list"
 
 abbreviation "emptyContainer \<equiv> 
-  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [], uses = [], provides = [], requires = [] \<rparr>"
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = [], uses = [], provides = [], requires = [] \<rparr>"
 
 text \<open> This is essentially an imperative algorithm for updating an interface. We use this to 
   turn a sequence of definitions into an interface object. \<close>
@@ -78,7 +83,7 @@ fun upd_Interface :: "InterfaceDecl \<Rightarrow> 'a Interface_scheme \<Rightarr
 "upd_Interface (VarDecl CNST vs) i = i\<lparr>constants := constants i @ vs\<rparr>" |
 "upd_Interface (VarDecl VAR vs) i = i\<lparr>variables := variables i @ vs\<rparr>" |
 "upd_Interface (ClockDecl n) i = i\<lparr>clocks := clocks i @ [n]\<rparr>" |
-"upd_Interface (OpDecl n ps t) i = i\<lparr>operations := operations i @ [\<lparr>ident = n, parameters = ps, terminate = t\<rparr>]\<rparr>" |
+"upd_Interface (OpDecl n ps t) i = i\<lparr>opdecls := opdecls i @ [\<lparr>ident = n, parameters = ps, terminate = t\<rparr>]\<rparr>" |
 "upd_Interface (EventDecl b es) i = i\<lparr>events := events i @ map (\<lambda> (n, t). \<lparr> ident = n, ttyp = t, bcast = b \<rparr>) es\<rparr>"
 
 definition mk_Interface :: "ID \<times> InterfaceDecl list \<Rightarrow> Interface" where
@@ -94,8 +99,6 @@ fun upd_Container :: "ContainerDecl \<Rightarrow> 'a Container_scheme \<Rightarr
 
 definition mk_Container :: "ID \<times> ContainerDecl list \<Rightarrow> Container" where
 "mk_Container = (\<lambda> (n, its). fold upd_Container its (emptyContainer\<lparr> ident := n \<rparr>))"
-
-type_synonym RoboticPlatform = ContainerDecl
 
 (* For now, triggers simply action terms (inner syntax) to be interpreted by the particular 
   semantic model. *)
@@ -148,7 +151,7 @@ record StateMachineDef = Container +
   transitions :: "Transition list"
 
 abbreviation "emptyStm \<equiv> 
-  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], operations = [], events = [], uses = [], provides = [], requires = [], nodes = [], transitions = [] \<rparr>"
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = [], uses = [], provides = [], requires = [], nodes = [], transitions = [] \<rparr>"
 
 fun upd_StateMachineDef :: "StateMachineDecl \<Rightarrow> StateMachineDef \<Rightarrow> StateMachineDef" where
 "upd_StateMachineDef (StmContainerDecl cd) stm = upd_Container cd stm" |
@@ -157,6 +160,65 @@ fun upd_StateMachineDef :: "StateMachineDecl \<Rightarrow> StateMachineDef \<Rig
 
 definition mk_StateMachineDef :: "ID \<times> StateMachineDecl list \<Rightarrow> StateMachineDef" where
 "mk_StateMachineDef = (\<lambda> (n, sds). fold upd_StateMachineDef sds (emptyStm\<lparr> ident := n \<rparr>))"
+
+datatype Connection =
+  Connection (cfrom: "ID \<times> ID") (cto: "ID \<times> ID") (async: bool) (bidir: bool)
+
+type_synonym RoboticPlatform = Container
+
+record BlockContainer = Container +
+  connections :: "Connection list"
+
+type_synonym Ref = "ID \<times> ID"
+
+datatype ControllerDecl = 
+  CtrlContainerDecl ContainerDecl |
+  OpRefDecl Ref |
+  StmRefDecl Ref |
+  ConnectionDecl Connection
+  (* TBD: Operations -- I think these should be by reference only *)
+
+record Controller = BlockContainer +
+  oprefs  :: "Ref list"
+  srefs   :: "Ref list"
+
+abbreviation "emptyCtrl \<equiv> 
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = []
+  , events = [], uses = [], provides = [], requires = []
+  , connections = [], oprefs = [], srefs = [] \<rparr>"
+
+fun upd_Controller :: "ControllerDecl \<Rightarrow> Controller \<Rightarrow> Controller" where
+"upd_Controller (CtrlContainerDecl cd) ct = upd_Container cd ct" |
+"upd_Controller (OpRefDecl orf) ct = ct\<lparr>oprefs := oprefs ct @ [orf]\<rparr>" |
+"upd_Controller (StmRefDecl srf) ct = ct\<lparr>srefs := srefs ct @ [srf]\<rparr>" |
+"upd_Controller (ConnectionDecl cn) ct = ct\<lparr>connections := connections ct @ [cn]\<rparr>" 
+
+definition mk_Controller :: "ID \<times> ControllerDecl list \<Rightarrow> Controller" where
+"mk_Controller = (\<lambda> (n, ct). fold upd_Controller ct (emptyCtrl\<lparr> ident := n \<rparr>))"
+
+record RCModule = BlockContainer +
+  rrefs :: "Ref list"
+  crefs :: "Ref list"
+
+datatype RCModuleDecl = 
+  RCModuleContainerDecl ContainerDecl |
+  RRefDecl Ref |
+  CRefDecl Ref |
+  ModConnectionDecl Connection
+
+abbreviation "emptyRCModule \<equiv> 
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = []
+  , events = [], uses = [], provides = [], requires = []
+  , connections = [], rrefs = [], crefs = [] \<rparr>"
+
+fun upd_RCModule :: "RCModuleDecl \<Rightarrow> RCModule \<Rightarrow> RCModule" where
+"upd_RCModule (RCModuleContainerDecl cd) ct = upd_Container cd ct" |
+"upd_RCModule (RRefDecl rrf) ct = ct\<lparr>rrefs := rrefs ct @ [rrf]\<rparr>" |
+"upd_RCModule (CRefDecl crf) ct = ct\<lparr>crefs := crefs ct @ [crf]\<rparr>" |
+"upd_RCModule (ModConnectionDecl cn) ct = ct\<lparr>connections := connections ct @ [cn]\<rparr>" 
+
+definition mk_RCModule :: "ID \<times> RCModuleDecl list \<Rightarrow> RCModule" where
+"mk_RCModule = (\<lambda> (n, ct). fold upd_RCModule ct (emptyRCModule\<lparr> ident := n \<rparr>))"
 
 datatype FuncDecl = FuncDecl ID "(ID \<times> utyp) list" "utyp" "uterm" "uterm"
 
@@ -185,9 +247,14 @@ code_reflect RC_AST
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
+  and Connection = Connection
+  and ControllerDecl = CtrlContainerDecl | OpRefDecl | StmRefDecl | ConnectionDecl
+  and Controller_ext = Controller_ext
+  and RCModuleDecl = RCModuleContainerDecl | RRefDecl | CRefDecl | ModConnectionDecl
+  and RCModule_ext = RCModule_ext
 functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
-  mk_StateMachineDef Transition_ext "from" "to" "trigger" "probability" 
+  mk_StateMachineDef mk_Controller mk_RCModule Transition_ext "from" "to" "trigger" "probability" 
   "condition" "action" "constants" "events" "nodes" "transitions"
-   "uses" "provides" "requires"
+  "uses" "provides" "requires" "connections" "oprefs" "srefs" "crefs"
 
 end

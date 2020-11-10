@@ -25,7 +25,7 @@ begin
 
 end
 
-robotic_platform n =
+robotic_platform rp1 =
   var x :: int
   requires f
 
@@ -53,8 +53,15 @@ thm machine_def
 
 end
 
-term i1
+controller c1 =
+  sref s1 = stm1
+  connection stm1 on x to stm1 on x async
+  connection stm1 on x to stm2 on y
 
+module rpm1 =
+  cref c1 = c1
+  rref rp1 = rp1
+  connection c1 on x to rp1 on x
 
 stm s2 =
   var v1 :: int

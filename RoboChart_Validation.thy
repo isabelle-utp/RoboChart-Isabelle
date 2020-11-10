@@ -17,7 +17,7 @@ text \<open> We encode some the well-formedness constraints for interfaces below
 fun validate_Interface :: "'a Interface_scheme \<Rightarrow> bool" where
 "validate_Interface itf = 
   (Named_unique (variables itf @ constants itf) 
-   \<and> Named_unique (operations itf)
+   \<and> Named_unique (opdecls itf)
    \<and> Named_unique (events itf))" 
 
 fun validate_StateMachine :: "StateMachineDef \<Rightarrow> bool" where
