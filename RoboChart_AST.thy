@@ -35,11 +35,6 @@ record Parameterised = Named +
 record ODecl = Parameterised +
   terminate  :: bool
 
-record ODef = ODecl +
-  precondition  :: uterm
-  postcondition :: uterm
-  (* TBD *)
-
 record EDecl = Typed +
   bcast :: bool
 
@@ -153,13 +148,38 @@ record StateMachineDef = Container +
 abbreviation "emptyStm \<equiv> 
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = [], uses = [], provides = [], requires = [], nodes = [], transitions = [] \<rparr>"
 
-fun upd_StateMachineDef :: "StateMachineDecl \<Rightarrow> StateMachineDef \<Rightarrow> StateMachineDef" where
+fun upd_StateMachineDef :: "StateMachineDecl \<Rightarrow> 'a StateMachineDef_scheme \<Rightarrow> 'a StateMachineDef_scheme" where
 "upd_StateMachineDef (StmContainerDecl cd) stm = upd_Container cd stm" |
 "upd_StateMachineDef (NodeDecl nd) stm = stm\<lparr>nodes := nodes stm @ [nd]\<rparr>" |
 "upd_StateMachineDef (TransitionDecl td) stm = stm\<lparr>transitions := transitions stm @ [td]\<rparr>"
 
 definition mk_StateMachineDef :: "ID \<times> StateMachineDecl list \<Rightarrow> StateMachineDef" where
 "mk_StateMachineDef = (\<lambda> (n, sds). fold upd_StateMachineDef sds (emptyStm\<lparr> ident := n \<rparr>))"
+
+datatype OperationDecl =
+  OpStmDecl StateMachineDecl |
+  PreDecl uterm |
+  PostDecl uterm |
+  TerminatesDecl
+
+record Operation = StateMachineDef +
+  preconditions  :: "uterm list"
+  postconditions :: "uterm list"
+  opterminates   :: bool
+
+abbreviation "emptyOp \<equiv> 
+  \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = []
+  , uses = [], provides = [], requires = [], nodes = [], transitions = []
+  , preconditions = [], postconditions = [], opterminates = False \<rparr>"
+
+fun upd_Operation :: "OperationDecl \<Rightarrow> Operation \<Rightarrow> Operation" where
+"upd_Operation (OpStmDecl sd) op = upd_StateMachineDef sd op" |
+"upd_Operation (PreDecl p) op = op\<lparr>preconditions := preconditions op @ [p]\<rparr>" |
+"upd_Operation (PostDecl p) op = op\<lparr>postconditions := postconditions op @ [p]\<rparr>" |
+"upd_Operation TerminatesDecl op = op\<lparr>opterminates := True\<rparr>"
+
+definition mk_Operation :: "ID \<times> OperationDecl list \<Rightarrow> Operation" where
+"mk_Operation = (\<lambda> (n, sds). fold upd_Operation sds (emptyOp\<lparr> ident := n \<rparr>))"
 
 datatype Connection =
   Connection (cfrom: "ID \<times> ID") (cto: "ID \<times> ID") (async: bool) (bidir: bool)
@@ -247,14 +267,16 @@ code_reflect RC_AST
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
+  and Operation_ext = Operation_ext
   and Connection = Connection
   and ControllerDecl = CtrlContainerDecl | OpRefDecl | StmRefDecl | ConnectionDecl
   and Controller_ext = Controller_ext
   and RCModuleDecl = RCModuleContainerDecl | RRefDecl | CRefDecl | ModConnectionDecl
   and RCModule_ext = RCModule_ext
 functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
-  mk_StateMachineDef mk_Controller mk_RCModule Transition_ext "from" "to" "trigger" "probability" 
+  mk_StateMachineDef mk_Operation mk_Controller mk_RCModule Transition_ext "from" "to" "trigger" "probability" 
   "condition" "action" "constants" "events" "nodes" "transitions"
   "uses" "provides" "requires" "connections" "oprefs" "srefs" "crefs"
+  "preconditions" "postconditions"
 
 end
