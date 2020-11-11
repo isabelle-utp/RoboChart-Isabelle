@@ -63,6 +63,12 @@ module rpm1 =
   rref rp1 = rp1
   connection c1 on x to rp1 on x
 
+operation op1(x :: int) =
+  var y :: int
+  precondition "x > 1"
+  postcondition "y > x"
+  terminates
+
 stm s2 =
   var v1 :: int
   uses itf1

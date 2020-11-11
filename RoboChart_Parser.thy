@@ -8,7 +8,7 @@ theory RoboChart_Parser
     "uses" "provides" "requires"
     "state" "entry" "during" "exit" "probabilistic" "initial" "final" "junction"
     "transition" "frm" "to" "trigger" "probability" "condition" "action" "!" "?" "]>" "<["
-    "operation" "opref" "sref" "rref" "cref" "connection" "on" "async" "mult"
+    "opref" "sref" "rref" "cref" "connection" "on" "async" "mult"
 begin
 
 text \<open> We define a set of parser combinators for the RoboChart commands. These simply produce 
@@ -117,6 +117,16 @@ val stateMachineDefParser =
     (@{keyword "="} |--
       repeat1 stateMachineBodyParser
     ));
+
+val operationBodyParser = 
+  (stateMachineBodyParser >> OpStmDecl) ||
+  ((@{keyword "precondition"} |-- term) >> PreDecl) ||
+  ((@{keyword "postcondition"} |-- term) >> PostDecl) ||
+  (@{keyword "terminates"} >> K TerminatesDecl)
+  
+val operationParser =
+  ((name -- parameterParser) -- (@{keyword "="} |-- repeat1 operationBodyParser))
+ >> mk_Operation
 
 val connectionParser =
   ((@{keyword connection} |-- name) 

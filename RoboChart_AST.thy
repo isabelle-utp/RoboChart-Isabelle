@@ -163,6 +163,7 @@ datatype OperationDecl =
   TerminatesDecl
 
 record Operation = StateMachineDef +
+  opparams       :: "(ID \<times> utyp) list"
   preconditions  :: "uterm list"
   postconditions :: "uterm list"
   opterminates   :: bool
@@ -170,7 +171,7 @@ record Operation = StateMachineDef +
 abbreviation "emptyOp \<equiv> 
   \<lparr> ident = STR '''', constants = [], variables = [], clocks = [], opdecls = [], events = []
   , uses = [], provides = [], requires = [], nodes = [], transitions = []
-  , preconditions = [], postconditions = [], opterminates = False \<rparr>"
+  , opparams = [], preconditions = [], postconditions = [], opterminates = False \<rparr>"
 
 fun upd_Operation :: "OperationDecl \<Rightarrow> Operation \<Rightarrow> Operation" where
 "upd_Operation (OpStmDecl sd) op = upd_StateMachineDef sd op" |
@@ -178,8 +179,8 @@ fun upd_Operation :: "OperationDecl \<Rightarrow> Operation \<Rightarrow> Operat
 "upd_Operation (PostDecl p) op = op\<lparr>postconditions := postconditions op @ [p]\<rparr>" |
 "upd_Operation TerminatesDecl op = op\<lparr>opterminates := True\<rparr>"
 
-definition mk_Operation :: "ID \<times> OperationDecl list \<Rightarrow> Operation" where
-"mk_Operation = (\<lambda> (n, sds). fold upd_Operation sds (emptyOp\<lparr> ident := n \<rparr>))"
+definition mk_Operation :: "(ID \<times> (ID \<times> utyp) list) \<times> OperationDecl list \<Rightarrow> Operation" where
+"mk_Operation = (\<lambda> ((n, ps), sds). fold upd_Operation sds (emptyOp\<lparr> ident := n, opparams := ps \<rparr>))"
 
 datatype Connection =
   Connection (cfrom: "ID \<times> ID") (cto: "ID \<times> ID") (async: bool) (bidir: bool)
@@ -267,6 +268,7 @@ code_reflect RC_AST
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
+  and OperationDecl = OpStmDecl | PreDecl | PostDecl | TerminatesDecl
   and Operation_ext = Operation_ext
   and Connection = Connection
   and ControllerDecl = CtrlContainerDecl | OpRefDecl | StmRefDecl | ConnectionDecl
@@ -277,6 +279,6 @@ functions Variable decl_of ident ttyp variables mk_Interface mk_Container
   mk_StateMachineDef mk_Operation mk_Controller mk_RCModule Transition_ext "from" "to" "trigger" "probability" 
   "condition" "action" "constants" "events" "nodes" "transitions"
   "uses" "provides" "requires" "connections" "oprefs" "srefs" "crefs"
-  "preconditions" "postconditions"
+  "preconditions" "postconditions" "opparams"
 
 end
