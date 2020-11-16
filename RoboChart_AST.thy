@@ -241,7 +241,7 @@ fun upd_RCModule :: "RCModuleDecl \<Rightarrow> RCModule \<Rightarrow> RCModule"
 definition mk_RCModule :: "ID \<times> RCModuleDecl list \<Rightarrow> RCModule" where
 "mk_RCModule = (\<lambda> (n, ct). fold upd_RCModule ct (emptyRCModule\<lparr> ident := n \<rparr>))"
 
-datatype FuncDecl = FuncDecl ID "(ID \<times> utyp) list" "utyp" "uterm" "uterm"
+datatype FuncDecl = FuncDecl ID "(ID \<times> utyp) list" "utyp" "uterm list" "uterm list"
 
 datatype Function = Func ID "(ID \<times> typ) list" "typ" "term" "term"
 
