@@ -92,7 +92,8 @@ end
 
 func sqrt_alt(x :: real) :: real
   precondition "x \<ge> 0"
-  postcondition "result \<ge> 0 \<and> result\<^sup>2 = x"
+  postcondition "result \<ge> 0" 
+  postcondition "result\<^sup>2 = x"
 
 lemma sqrt_alt: "x \<ge> 0 \<Longrightarrow> sqrt_alt x = sqrt x"
   by (auto simp add: sqrt_alt_def fun_spec_def)
