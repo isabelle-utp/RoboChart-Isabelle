@@ -54,7 +54,7 @@ val operationSigParser =
 
 val eventDecl =
   (Scan.optional (@{keyword "broadcast"} >> (fn _ => true)) false 
-  -- (@{keyword "event"} |-- repeat1 nameParser)) >> EventDecl
+  -- (@{keyword "event"} |-- repeat1 (name -- optional ($$$ "::" |-- typ) @{type_name unit}))) >> EventDecl
 
 val intfKeyParser =
   varDeclParser || clockDeclParser || operationSigParser || eventDecl

@@ -56,7 +56,7 @@ end
 controller c1 =
   sref s1 = stm1
   connection stm1 on x to stm1 on x async
-  connection stm1 on x to stm2 on y
+  connection stm1 on x to stm2 on y mult
 
 module rpm1 =
   cref c1 = c1
@@ -81,6 +81,16 @@ stm s2 =
   transition t2 [frm p1 to act trigger "False" probability "0.1" condition "False"]
   probabilistic p1
   event e4 :: string
+
+controller c1 =
+  sref s1 = stm1
+  connection stm1 on x to stm1 on x async
+  connection stm1 on x to stm2 on y
+
+module rpm1 =
+  cref ctrl_ref1 = c1
+  rref rp1 = rp1
+  connection c1 on x to rp1 on x
 
 context s2
 begin
@@ -107,5 +117,7 @@ func f3(x :: int) :: int
 
 lemma "f3 = (\<lambda> x. x + 1)"
   by (simp add: f3_def fun_spec_def)
+
+
 
 end
