@@ -83,7 +83,7 @@ val nodeParser =
   (@{keyword "final"} |-- name >> Final) ||
   (@{keyword "probabilistic"} |-- name >> ProbabilisticJunction) ||
   (@{keyword "state"} |-- name -- 
-    ($$$ "[" |-- repeat actionParser --| $$$ "]") >> (fn (n, a) => State (n, [], [], a)))
+    optional ($$$ "[" |-- repeat actionParser --| $$$ "]") [] >> (fn (n, a) => State (n, [], [], a)))
 
 (*
 val eventParser = 
