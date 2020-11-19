@@ -138,6 +138,9 @@ definition compile_Transition_defn :: "Proof.context \<Rightarrow> typ \<Rightar
 
 definition "basic_Node n = SNode n None None None [] []"
 
+lemma name_basic_Node [simp]: "n_name (basic_Node n) = n"
+  by (simp add: basic_Node_def)
+
 definition get_Entry :: "Action list \<Rightarrow> uterm option" where
 "get_Entry acts = map_option act (find is_Entry acts)"
 

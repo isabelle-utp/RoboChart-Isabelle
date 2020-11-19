@@ -162,6 +162,8 @@ lift_definition rename :: "'e Process \<Rightarrow> ('e \<Rightarrow> 'f) \<Righ
 
 lift_definition productive :: "('s, 'e) Action \<Rightarrow> bool" is "\<lambda> P. P is Productive" .
 
+abbreviation "unproductive P \<equiv> \<not> (productive P)"
+
 lemma CDF_is_C2 [closure]: "CDF is C2"
   unfolding CDF_def by (rule C2_rdes_intro, simp_all add: closure unrest)
 
@@ -270,11 +272,19 @@ lemma productive_receive [simp]: "productive (receive e x)"
 lemma productive_send [simp]: "productive (send e v)"
   by (transfer, simp add: closure)
 
+lemma unproductive_assigns [simp]: "unproductive (assigns \<sigma>)"
+  by (transfer, simp add: unproductive_AssignsCSP)
+
+lemma unproductive_skip [simp]: "unproductive skip"
+  by (metis AssignsCSP_as_AssignsR NCSP_implies_NSRD Productive_seq_2 assigns_srd_NSRD_closed csp_theory.Healthy_Unit productive.rep_eq skips.rep_eq unproductive_AssignsCSP)
+
 lemma productive_Productive:
   "productive P \<Longrightarrow> \<lbrakk>P\<rbrakk>\<^sub>A is Productive"  
   by (simp add: productive.rep_eq)
 
 named_theorems action_simp
+
+named_theorems action_subst
 
 lemma seq_assoc [action_simp]: "((P :: ('s, 'e) Action) ; Q) ; R = P ; Q ; R"
   by (transfer, simp add: seqr_assoc)
@@ -282,33 +292,33 @@ lemma seq_assoc [action_simp]: "((P :: ('s, 'e) Action) ; Q) ; R = P ; Q ; R"
 lemma miracle_left_anhil [action_simp]: "miracle ; P = miracle"
   by (transfer, simp add: CACT_implies_NCSP csp_theory.Top_Left_Zero)
 
-lemma assigns_seq [action_simp]: 
+lemma assigns_seq [action_subst]: 
   fixes P :: "('s, 'e) Action"
   shows "\<langle>\<sigma>\<rangle>\<^sub>a ; P = (\<sigma> \<dagger> P)"
   by (transfer, metis (no_types, lifting) AssignsCSP_as_AssignsR CACT_implies_NCSP NCSP_implies_NSRD assigns_srd_left_seq csp_theory.Unit_Left seqr_assoc)
 
-lemma asubst_asm [action_simp]: "\<sigma> \<dagger> [b]\<^sub>A = [\<sigma> \<dagger> b]\<^sub>A ; \<langle>\<sigma>\<rangle>\<^sub>a"
+lemma asubst_asm [action_subst]: "\<sigma> \<dagger> [b]\<^sub>A = [\<sigma> \<dagger> b]\<^sub>A ; \<langle>\<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 
-lemma asubst_twice [action_simp]: 
+lemma asubst_twice [action_subst]: 
   fixes P :: "('s, 'e) Action"
   shows "\<sigma> \<dagger> \<rho> \<dagger> P = (\<rho> \<circ>\<^sub>s \<sigma>) \<dagger> P"
   by (simp add: action_rep_eq usubst)
 
-lemma asubst_seq [action_simp]:
+lemma asubst_seq [action_subst]:
   fixes P Q :: "('s, 'e) Action"
   shows "\<sigma> \<dagger> (P ; Q) = ((\<sigma> \<dagger> P) ; Q)"
   by (simp add: action_rep_eq usubst)
 
-lemma asubst_skip [action_simp]:
+lemma asubst_skip [action_subst]:
   "\<sigma> \<dagger> skip = \<langle>\<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 
-lemma asubst_stop [action_simp]:
+lemma asubst_stop [action_subst]:
   "\<sigma> \<dagger> stop = stop"
   by (simp add: action_rep_eq, rdes_eq)
 
-lemma asubst_assigns [action_simp]:
+lemma asubst_assigns [action_subst]:
   "\<sigma> \<dagger> (\<langle>\<rho>\<rangle>\<^sub>a :: ('s, 'e) Action) = \<langle>\<rho> \<circ>\<^sub>s \<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 
@@ -322,19 +332,19 @@ lemma extChoice_usubst:
   shows "\<sigma> \<dagger>\<^sub>S (extChoice P Q) = extChoice (\<sigma> \<dagger>\<^sub>S P) (\<sigma> \<dagger>\<^sub>S Q)"
   by (rdes_eq cls: assms)
 
-lemma asubst_extchoice [action_simp]:
+lemma asubst_extchoice [action_subst]:
   "\<sigma> \<dagger> (P \<box> Q) = (\<sigma> \<dagger> P) \<box> (\<sigma> \<dagger> Q)"
   by (simp add: action_rep_eq extChoice_usubst closure)
 
-lemma asubst_guard [action_simp]:
+lemma asubst_guard [action_subst]:
   "\<sigma> \<dagger> (b \<^bold>& P) = (\<sigma> \<dagger> b) \<^bold>& (\<sigma> \<dagger> P)"
   by (simp add: action_rep_eq GuardCSP_usubst closure)
 
-lemma asubst_sync [action_simp]:
+lemma asubst_sync [action_subst]:
   "\<sigma> \<dagger> sync e = sync e ; \<langle>\<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 
-lemma asubst_send [action_simp]:
+lemma asubst_send [action_subst]:
   "\<sigma> \<dagger> send e v = send e (\<sigma> \<dagger> v) ; \<langle>\<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 

@@ -2,7 +2,7 @@ section \<open> Circus Statemachine Semantics \<close>
 
 theory Circus_SM_Semantics
   imports "RoboChart.RoboChart" Actions
-begin
+begin recall_syntax
 
 subsection \<open> Alphabet \<close>
 
@@ -35,10 +35,10 @@ type_synonym ('s, 'e) RStateMachine = "('s upred, ('s, 'e) Action, unit) SStateM
 
 subsection \<open> State Machine Semantics \<close>
 
-abbreviation "trigger_semantics t null_event \<equiv> 
+abbreviation "trigger_semantics t \<equiv> 
   (case tn_trigger t of 
-    Some e \<Rightarrow> if productive e then e else sync null_event | 
-    None \<Rightarrow> sync null_event)"
+    Some e \<Rightarrow> e | 
+    None \<Rightarrow> skip)"
 
 definition tn_condition :: "('s, 'e) RTransition \<Rightarrow> 's upred" where
 "tn_condition t = case_option true_upred id (tn_cond t)"
@@ -49,9 +49,11 @@ definition tn_action :: "('s, 'e) RTransition \<Rightarrow> ('s, 'e) Action" whe
 no_utp_lift tn_condition
 
 definition tr_semantics :: "('s, 'e) RTransition \<Rightarrow> (unit, 'e) chan \<Rightarrow> ('s, 'e) RoboAction" ("\<lbrakk>_\<rbrakk>\<^sub>T") where
-"tr_semantics t null_event \<equiv> 
+"tr_semantics t \<epsilon> \<equiv> 
+  let tsem = trigger_semantics t ; tn_action t
+  in
   tn_condition t \<oplus>\<^sub>p rc_state \<^bold>& 
-  rc_state:[trigger_semantics t null_event ; tn_action t]\<^sub>A\<^sup>+ ; rc_ctrl := \<guillemotleft>tn_target t\<guillemotright>"
+  rc_state:[if productive tsem then tsem else tsem ; sync \<epsilon>]\<^sub>A\<^sup>+ ; rc_ctrl := \<guillemotleft>tn_target t\<guillemotright>"
 
 definition "n_entry_sem n = case_option skip id (n_entry n)"
 
@@ -59,9 +61,9 @@ definition "n_exit_sem n = case_option skip id (n_exit n)"
 
 definition node_semantics :: 
   "('s, 'e) RStateMachine \<Rightarrow> (unit, 'e) chan \<Rightarrow> ('s, 'e) RNode \<Rightarrow> ('s, 'e) RoboAction" ("_;_ \<turnstile> \<lbrakk>_\<rbrakk>\<^sub>N" [10,0,0] 10) where
-  "node_semantics M null_event node  = 
+  "node_semantics M \<epsilon> node  = 
   (rc_state:[n_entry_sem node]\<^sub>A\<^sup>+ ;
-   (foldr (\<box>) (map (\<lambda> t. \<lbrakk>t\<rbrakk>\<^sub>T null_event) (the (Tmap\<^bsub>M\<^esub> (n_name node)))) stop) ;
+   (foldr (\<box>) (map (\<lambda> t. \<lbrakk>t\<rbrakk>\<^sub>T \<epsilon>) (the (Tmap\<^bsub>M\<^esub> (n_name node)))) stop) ;
    rc_state:[n_exit_sem node]\<^sub>A\<^sup>+)"
 
 dataspace stm_context =
@@ -82,15 +84,15 @@ definition sm_semantics :: "('st, 'ch) RStateMachine \<Rightarrow> _ \<Rightarro
 lemmas sm_sem_def = sm_semantics_def node_semantics_def sm_inters_def sm_inter_names_def
 
 lemma tr_semantics_subst_ctrl: "[&rc_ctrl \<mapsto>\<^sub>s \<guillemotleft>k\<guillemotright>] \<dagger> (\<lbrakk>a\<rbrakk>\<^sub>T null_event) = \<lbrakk>a\<rbrakk>\<^sub>T null_event"
-  by (simp add: tr_semantics_def action_simp usubst unrest frame_asubst)
+  by (simp add: tr_semantics_def action_simp action_subst usubst unrest frame_asubst Let_unfold)
 
 lemma tr_choice_subst_ctrl:
   "[&rc_ctrl \<mapsto>\<^sub>s \<guillemotleft>k\<guillemotright>] \<dagger> foldr (\<box>) (map (\<lambda>t. \<lbrakk>t\<rbrakk>\<^sub>T null_event) ts) stop = foldr (\<box>) (map (\<lambda>t. \<lbrakk>t\<rbrakk>\<^sub>T null_event) ts) stop"
-  by (induct ts, simp_all add: action_simp usubst tr_semantics_subst_ctrl)
+  by (induct ts, simp_all add: action_simp action_subst usubst tr_semantics_subst_ctrl)
 
 lemma sm_semantics_subst_ctrl:
   "[&rc_ctrl \<mapsto>\<^sub>s \<guillemotleft>k\<guillemotright>] \<dagger> node_semantics M null_event node = node_semantics M null_event node"
-  by (simp add: node_semantics_def action_simp frame_asubst tr_choice_subst_ctrl unrest)
+  by (simp add: node_semantics_def action_simp action_subst frame_asubst tr_choice_subst_ctrl unrest)
 
 (* Tests *)
 
@@ -133,7 +135,26 @@ stm stm1 =
   event e :: unit
   initial s1
   final s2
-  transition t1 [frm s1 to s2 condition "U(x = 0)" action "act(x := 1 ; e)"]
+  transition t1 [frm s1 to s2 condition "U(x = 0)" action "act(x := 1)"]
+
+lemma entry_basic_Node [simp]: "n_entry_sem (basic_Node n) = skip"
+  by (simp add: n_entry_sem_def basic_Node_def)
+
+lemma exit_basic_Node [simp]: "n_exit_sem (basic_Node n) = skip"
+  by (simp add: n_exit_sem_def basic_Node_def)
+
+
+lemma basic_Node_sem:
+  "(M;\<epsilon> \<turnstile> \<lbrakk>basic_Node n\<rbrakk>\<^sub>N) = foldr (\<box>) (map (\<lambda>t. \<lbrakk>t\<rbrakk>\<^sub>T \<epsilon>) (the (Tmap\<^bsub>M\<^esub> n))) stop"
+  by (simp add: node_semantics_def action_simp)
+
+
+lemma [simp]: "productive P \<Longrightarrow> productive (P ; Q)"
+  by (transfer, simp add: closure)
+
+lemma [simp]: "productive Q \<Longrightarrow> productive (P ; Q)"
+  by (transfer, simp add: closure)
+
 
 context stm1
 begin
@@ -145,6 +166,21 @@ thm t1_def
 term machine
 
 term "action"
+
+lemma [simp]: "Init\<^bsub>machine\<^esub> = STR ''s1''"
+  by (simp add: machine_def)
+
+lemma [simp]: "Tmap\<^bsub>machine\<^esub> = [STR ''s1'' \<mapsto> [t1], STR ''s2'' \<mapsto> []]"
+  by (auto simp add: sm_trans_map_def machine_def s1_def s2_def t1_def)
+
+lemma [simp]: "sm_inters machine = [s1]"
+  by (auto simp add: machine_def sm_inters_def s1_def s2_def basic_Node_def)
+
+lemma "action = undefined"
+  apply (simp add: action_def sm_semantics_def)
+  apply (simp add: s1_def basic_Node_sem)
+  apply (simp add: tr_semantics_def t1_def tn_action_def Let_unfold action_simp tn_condition_def)
+  oops
 
 end
 
