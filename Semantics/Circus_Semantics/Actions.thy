@@ -278,6 +278,12 @@ lemma unproductive_assigns [simp]: "unproductive (assigns \<sigma>)"
 lemma unproductive_skip [simp]: "unproductive skip"
   by (metis AssignsCSP_as_AssignsR NCSP_implies_NSRD Productive_seq_2 assigns_srd_NSRD_closed csp_theory.Healthy_Unit productive.rep_eq skips.rep_eq unproductive_AssignsCSP)
 
+lemma productive_seq_left [simp]: "productive P \<Longrightarrow> productive (P ; Q)"
+  by (transfer, simp add: closure)
+
+lemma productive_seq_right [simp]: "productive Q \<Longrightarrow> productive (P ; Q)"
+  by (transfer, simp add: closure)
+
 lemma productive_Productive:
   "productive P \<Longrightarrow> \<lbrakk>P\<rbrakk>\<^sub>A is Productive"  
   by (simp add: productive.rep_eq)

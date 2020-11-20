@@ -1,4 +1,4 @@
-section \<open> Circus Statemachine Semantics \<close>
+section \<open> Circus State Machine Semantics \<close>
 
 theory Circus_SM_Semantics
   imports "RoboChart.RoboChart" Actions
@@ -99,7 +99,6 @@ lemma sm_semantics_subst_ctrl:
 definition "circus_predT stT = Type @{type_name upred} [stT]"
 definition "circus_actionT stT evT = Type @{type_name Action} [stT, evT]"
 definition "circus_probT stT = @{typ unit}"
-
 definition "actionN = STR ''action''"
 
 definition "action_eq = 
@@ -114,28 +113,14 @@ code_reflect RC_Circus_Semantics
 setup \<open>
   let open RC_Compiler; open RC_Circus_Semantics; open Specification
     val cont = snd o definition NONE [] [] ((Binding.empty, []), action_eq)
+    val circus_types = RCTypes_ext (circus_predT, @{nonterminal utp_expr}, circus_actionT, @{nonterminal "raction"}, circus_probT, @{nonterminal utp_expr}, ())
     val circus_semantics = 
-      { predT = circus_predT, actionT = circus_actionT, probT = circus_probT
-     , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics cont o add_stm_context } : RCSem_Proc
-
+      stm_sem_update (K (context_Stm_Semantics cont o add_stm_context)) null_RCSem_Proc
+      |> rctypes_update (K circus_types)
   in
     Stm_Sem.put circus_semantics
   end
 \<close>
-
-context stm_context
-begin
-
-term null_event
-
-end
-
-stm stm1 =
-  var x :: int
-  event e :: unit
-  initial s1
-  final s2
-  transition t1 [frm s1 to s2 condition "U(x = 0)" action "act(x := 1)"]
 
 lemma entry_basic_Node [simp]: "n_entry_sem (basic_Node n) = skip"
   by (simp add: n_entry_sem_def basic_Node_def)
@@ -143,45 +128,8 @@ lemma entry_basic_Node [simp]: "n_entry_sem (basic_Node n) = skip"
 lemma exit_basic_Node [simp]: "n_exit_sem (basic_Node n) = skip"
   by (simp add: n_exit_sem_def basic_Node_def)
 
-
 lemma basic_Node_sem:
   "(M;\<epsilon> \<turnstile> \<lbrakk>basic_Node n\<rbrakk>\<^sub>N) = foldr (\<box>) (map (\<lambda>t. \<lbrakk>t\<rbrakk>\<^sub>T \<epsilon>) (the (Tmap\<^bsub>M\<^esub> n))) stop"
   by (simp add: node_semantics_def action_simp)
-
-
-lemma [simp]: "productive P \<Longrightarrow> productive (P ; Q)"
-  by (transfer, simp add: closure)
-
-lemma [simp]: "productive Q \<Longrightarrow> productive (P ; Q)"
-  by (transfer, simp add: closure)
-
-
-context stm1
-begin
-
-term null_event
-
-thm t1_def
-
-term machine
-
-term "action"
-
-lemma [simp]: "Init\<^bsub>machine\<^esub> = STR ''s1''"
-  by (simp add: machine_def)
-
-lemma [simp]: "Tmap\<^bsub>machine\<^esub> = [STR ''s1'' \<mapsto> [t1], STR ''s2'' \<mapsto> []]"
-  by (auto simp add: sm_trans_map_def machine_def s1_def s2_def t1_def)
-
-lemma [simp]: "sm_inters machine = [s1]"
-  by (auto simp add: machine_def sm_inters_def s1_def s2_def basic_Node_def)
-
-lemma "action = undefined"
-  apply (simp add: action_def sm_semantics_def)
-  apply (simp add: s1_def basic_Node_sem)
-  apply (simp add: tr_semantics_def t1_def tn_action_def Let_unfold action_simp tn_condition_def)
-  oops
-
-end
 
 end

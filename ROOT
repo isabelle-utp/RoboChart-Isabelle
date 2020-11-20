@@ -11,4 +11,11 @@ session "RoboChart"
   sessions Optics
   theories
     RoboChart
+
+session "RoboChart-Circus" in "Semantics/Circus_Semantics"
+  = "UTP-Circus" +
+  options [document = false, timeout = 1000]
+  sessions "RoboChart"
+  theories
+    RoboChart_Circus
   
