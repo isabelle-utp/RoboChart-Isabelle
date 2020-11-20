@@ -99,8 +99,8 @@ stm s2 =
   final f
   var v2 :: real
   broadcast event e1 :: real e2 :: int e3 :: string
-  state ms [entry "True" exit "True"]
-  transition t1 [frm i1 to act trigger "True" probability "0.5" condition "True"]
+  state ms [entry "True \<and> False" exit "True"]
+  transition t1 [frm i1 to act trigger "True" probability "0.5" condition "True \<and> False"]
   transition t2 [frm p1 to act trigger "False" probability "0.1" condition "False"]
   probabilistic p1
   event e4 :: string

@@ -1,7 +1,7 @@
 section \<open> Semantics of State Machines \<close>
 
 theory RoboChart_StateMachine
-  imports "RoboChart_AST"
+  imports "RoboChart_AST" "RoboChart_Semantic_Processors"
 begin
 
 subsection \<open> Semantic AST \<close>
@@ -120,21 +120,21 @@ subsection \<open> Compilation of Semantic State Machines \<close>
 
 abbreviation "parse_opt_term ctx u \<equiv> mk_option (map_option (parse_term ctx) u)"
 
-definition compile_Transition :: "Proof.context \<Rightarrow> Transition \<Rightarrow> term" where
-"compile_Transition ctx t = 
+definition compile_Transition :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> Transition \<Rightarrow> term" where
+"compile_Transition ctx rsp t = 
   const @{const_name STransition} 
   $ mk_literal (from t)
   $ mk_literal (to t)
-  $ parse_opt_term ctx (trigger t)
-  $ parse_opt_term ctx (probability t)
-  $ parse_opt_term ctx (condition t)
-  $ parse_opt_term ctx (action t)"
+  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (trigger t)
+  $ parse_opt_term (Config.put Syntax.root (prob_syn rsp) ctx) (probability t)
+  $ parse_opt_term (Config.put Syntax.root (pred_syn rsp) ctx) (condition t)
+  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (action t)"
 
-definition compile_Transition_defn :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Transition \<Rightarrow> term" where
-"compile_Transition_defn ctx predT actT probT tr 
+definition compile_Transition_defn :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Transition \<Rightarrow> term" where
+"compile_Transition_defn ctx rsp pT aT prbT tr 
   = mk_equals 
-      (Free (ident tr) (Type @{type_name STransition} [predT, actT, probT])) 
-      (compile_Transition ctx tr)"
+      (Free (ident tr) (Type @{type_name STransition} [pT, aT, prbT])) 
+      (compile_Transition ctx rsp tr)"
 
 definition "basic_Node n = SNode n None None None [] []"
 
@@ -150,29 +150,29 @@ definition get_During :: "Action list \<Rightarrow> uterm option" where
 definition get_Exit :: "Action list \<Rightarrow> uterm option" where
 "get_Exit acts = map_option act (find is_Exit acts)"
 
-fun compile_Node :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
-"compile_Node ctx (Initial n) = 
+fun compile_Node :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> Node \<Rightarrow> term" where
+"compile_Node ctx rsp (Initial n) = 
   const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx (Final n) =
+"compile_Node ctx rsp (Final n) =
   const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx (Junction n) =
+"compile_Node ctx rsp (Junction n) =
   const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx (ProbabilisticJunction n) =
+"compile_Node ctx rsp (ProbabilisticJunction n) =
   const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx (State n ns ts acts) = 
+"compile_Node ctx rsp (State n ns ts acts) = 
   const @{const_name SNode}
   $ mk_literal n
   $ parse_opt_term ctx (get_Entry acts)
   $ parse_opt_term ctx (get_During acts)
   $ parse_opt_term ctx (get_Exit acts)
-  $ mk_list dummyT (map (compile_Node ctx) ns)
-  $ mk_list dummyT (map (compile_Transition ctx) ts)"
+  $ mk_list dummyT (map (compile_Node ctx rsp) ns)
+  $ mk_list dummyT (map (compile_Transition ctx rsp) ts)"
 
-definition compile_Node_defn :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term" where
-"compile_Node_defn ctx predT actT probT node
+definition compile_Node_defn :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term" where
+"compile_Node_defn ctx rsp prT actT prbT node
   = mk_equals 
-      (Free (sname node) (Type @{type_name SNode} [predT, actT, probT])) 
-      (compile_Node ctx node)"
+      (Free (sname node) (Type @{type_name SNode} [prT, actT, prbT])) 
+      (compile_Node ctx rsp node)"
 
 definition get_Initial :: "Node list \<Rightarrow> ID" where
 "get_Initial ns = sname (the (find is_Initial ns))"
@@ -192,9 +192,9 @@ definition "machineN = STR ''machine''"
 
 definition compile_StateMachineDef_defn 
   :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> StateMachineDef \<Rightarrow> term" where
-"compile_StateMachineDef_defn ctx predT actT probT smd
+"compile_StateMachineDef_defn ctx prT actT prbT smd
   = mk_equals 
-      (Free machineN (Type @{type_name SStateMachine} [predT, actT, probT])) 
+      (Free machineN (Type @{type_name SStateMachine} [prT, actT, prbT])) 
       (compile_StateMachineDef ctx smd)"
 
 code_reflect RC_Stm

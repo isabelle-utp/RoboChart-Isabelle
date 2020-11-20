@@ -1,7 +1,8 @@
 section \<open> RoboChart Static Semantics \<close>
 
 theory RoboChart_Semantics
-  imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine "Optics.Optics"
+  imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine 
+    RoboChart_Semantic_Processors "Optics.Optics"
   keywords 
     "interface" "func" "robotic_platform" "stm" 
     "operation" "controller" "module" :: "thy_decl_block"
@@ -30,6 +31,8 @@ fun func_body :: "Function \<Rightarrow> term" where
 code_reflect RC_Semantics
   functions add_free_types func_body
 
+ML \<open> RC_SemProc.RCSem_Proc_ext \<close>
+
 ML \<open>
 
 structure RC_Compiler =
@@ -38,45 +41,9 @@ struct
 open RC_AST;
 open RC_Validation;
 open RC_Semantics;
+open RC_SemProc;
 
-type interface = unit RC_AST.interface_ext RC_AST.named_ext;
-type roboticPlatform = unit RC_AST.container_ext RC_AST.interface_ext RC_AST.named_ext;
-type stateMachineDef = unit stateMachineDef_ext RC_AST.container_ext RC_AST.interface_ext RC_AST.named_ext
-
-structure RCInterfaces = Theory_Data
-  (type T = interface Symtab.table
-   val empty = Symtab.empty
-   val extend = I
-   val merge = Symtab.merge (K true));
-
-structure RCPlatforms = Theory_Data
-  (type T = roboticPlatform Symtab.table
-   val empty = Symtab.empty
-   val extend = I
-   val merge = Symtab.merge (K true));
-
-(* Semantic processors *)
-
-type PredType = typ -> typ
-type ActionType = typ -> typ -> typ
-type ProbType = typ -> typ
-
-type RCSem_Proc = 
-  { predT: PredType
-  , actionT: ActionType
-  , probT: ProbType
-  , itf_sem: interface -> theory -> theory
-  , rpl_sem: roboticPlatform -> theory -> theory
-  , stm_sem: stateMachineDef -> theory -> theory
-  }
-
-val null_predT: PredType = K @{typ bool}
-val null_actionT: ActionType = K (K @{typ bool})
-val null_probT: ProbType = K @{typ real}
-
-val null_RCSem_Proc = 
-  { predT = null_predT, actionT = null_actionT, probT = null_probT
-  , itf_sem = K I, rpl_sem = K I, stm_sem = K I }
+type RCSem_Proc = unit rCSem_Proc_ext;
 
 structure Stm_Sem = Theory_Data
   (type T = RCSem_Proc
@@ -119,7 +86,6 @@ fun compileContainer cnt thy =
         ((*RCInterfaces.map (Symtab.update (ident itf, itf))*) thy)
   else raise ROBOCHART_INVALID;
 
-
 val machineN = "machine";
 
 (* Create a local context with variables and events, and generate a semantic state machine *)
@@ -130,12 +96,13 @@ fun context_Stm_Semantics cont smd thy =
   let open Syntax; open Logic; open RC_Stm; open Specification
       val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) 
                   (compileContainer smd thy))
-      val predT = #predT (Stm_Sem.get thy) Lens_Lib.astateT
-      val actionT = #actionT (Stm_Sem.get thy) Lens_Lib.astateT Dataspace.achanT
-      val probT = #probT (Stm_Sem.get thy) Lens_Lib.astateT
+      val rsp = Stm_Sem.get thy
+      val predT = predT (rctypes rsp) Lens_Lib.astateT
+      val actionT = actionT (rctypes rsp) Lens_Lib.astateT Dataspace.achanT
+      val probT = probT (rctypes rsp) Lens_Lib.astateT
       (* State definitions *)
-      val seqs = map (check_term ctx o compile_Node_defn ctx predT actionT probT) (nodes smd)
-      val teqs = map (check_term ctx o compile_Transition_defn ctx predT actionT probT) (transitions smd)
+      val seqs = map (check_term ctx o compile_Node_defn ctx (rctypes rsp) predT actionT probT) (nodes smd)
+      val teqs = map (check_term ctx o compile_Transition_defn ctx (rctypes rsp) predT actionT probT) (transitions smd)
       val smeq = check_term ctx (RC_Stm.compile_StateMachineDef_defn ctx predT actionT probT smd)
   in Local_Theory.exit_global 
       ((  fold (fn seq => snd o definition NONE [] [] ((Binding.empty, []), seq)) seqs
@@ -145,16 +112,15 @@ fun context_Stm_Semantics cont smd thy =
        ) ctx)
   end;
 
-fun ctx_semantics cont prT actT prbT = 
-  { predT = prT, actionT = actT, probT = prbT
-  , itf_sem = K I, rpl_sem = K I, stm_sem = context_Stm_Semantics cont } : RCSem_Proc
+fun ctx_semantics rsp cont = 
+  RCSem_Proc_ext (rsp, (K I), (K I), (context_Stm_Semantics cont), ())
 
 fun compileStateMachine (n, defs) thy =
   let val smd = RC_AST.mk_StateMachineDef (n, defs)
   in 
     if (validate_StateMachine smd)
     (* Get the current semantic processor *)
-    then #stm_sem (Stm_Sem.get thy) smd thy
+    then stm_sem (Stm_Sem.get thy) smd thy
     else raise ROBOCHART_INVALID
   end;
 
@@ -192,8 +158,8 @@ val _ =
 text \<open> Set the default semantic processor \<close>
 
 setup \<open>
-  let open RC_Compiler in
-  Stm_Sem.put (ctx_semantics I null_predT null_actionT null_probT)
+  let open RC_Compiler; open RC_SemProc in
+  Stm_Sem.put (ctx_semantics null_RCTypes I)
   end
 \<close>
 

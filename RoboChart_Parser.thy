@@ -97,9 +97,9 @@ val transitionParser =
       (@{keyword "to"} |-- name) --
       option (@{keyword "trigger"} |-- term) --
       option (@{keyword "probability"} |-- term) --
-      option (@{keyword "condition"} |-- term) --
+      option (@{keyword "condition"} |-- typ) --
       option (@{keyword "action"} |-- term)
-     --| $$$ "]") >> (fn (n, (((((s, t), tr), p), c), a)) => Named_ext (n, Transition_ext (s, t, tr, p, c, a, ())));
+     --| $$$ "]") >> (fn (n, (((((s, t), tr), p), c), a)) => Named_ext (n, Transition_ext (s, t, tr, p, let val _ = case c of SOME c' => @{print} (YXML.parse c') | _ => YXML.parse "" in c end, a, ())));
 
 (* We construct the node parser so that it is recursive, with descent in a maximum depth value.
    This value can be unlimited but must be fixed we initialising the parser. We fix it to 4
