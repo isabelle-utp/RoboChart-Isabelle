@@ -112,8 +112,9 @@ fun context_Stm_Semantics cont smd thy =
        ) ctx)
   end;
 
-fun ctx_semantics rsp cont = 
-  RCSem_Proc_ext (rsp, (K I), (K I), (context_Stm_Semantics cont), ())
+fun ctx_semantics rsp cont =
+  rctypes_update (K rsp) null_RCSem_Proc 
+  |> stm_sem_update (K (context_Stm_Semantics cont));
 
 fun compileStateMachine (n, defs) thy =
   let val smd = RC_AST.mk_StateMachineDef (n, defs)

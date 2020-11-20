@@ -162,9 +162,9 @@ fun compile_Node :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> Node \<Ri
 "compile_Node ctx rsp (State n ns ts acts) = 
   const @{const_name SNode}
   $ mk_literal n
-  $ parse_opt_term ctx (get_Entry acts)
-  $ parse_opt_term ctx (get_During acts)
-  $ parse_opt_term ctx (get_Exit acts)
+  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Entry acts)
+  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_During acts)
+  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Exit acts)
   $ mk_list dummyT (map (compile_Node ctx rsp) ns)
   $ mk_list dummyT (map (compile_Transition ctx rsp) ts)"
 
