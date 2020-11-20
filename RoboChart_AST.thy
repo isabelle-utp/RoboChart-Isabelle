@@ -120,21 +120,23 @@ record Transition = Named +
   "condition"   :: "uterm option"
   "action"      :: "uterm option"
 
-datatype Action = Entry (act: uterm) | During (act: uterm) | Exit (act: uterm)
+datatype (discs_sels) Action = Entry (act: uterm) | During (act: uterm) | Exit (act: uterm)
 
-fun is_Entry :: "Action \<Rightarrow> bool" where "is_Entry (Entry _) = True" | "is_Entry _ = False"
-fun is_During :: "Action \<Rightarrow> bool" where "is_During (During _) = True" | "is_During _ = False"
-fun is_Exit :: "Action \<Rightarrow> bool" where "is_Exit (Exit _) = True" | "is_Exit _ = False"
-
-datatype Node =
+datatype (discs_sels) Node =
   State (sname: ID) (snodes: "Node list") (stransitions: "Transition list") (sactions: "Action list") |
   Initial (sname: ID) |
   Junction (sname: ID) |
   Final (sname: ID) |
   ProbabilisticJunction (sname: ID)
 
-fun is_Initial :: "Node \<Rightarrow> bool" where "is_Initial (Initial _) = True" | "is_Initial _ = False"
-fun is_Final :: "Node \<Rightarrow> bool" where "is_Final (Final _) = True" | "is_Final _ = False"
+datatype (discs_sels) StateDecl = 
+  ActionDecl Action |
+  InnerNodeDecl Node |
+  InnerTransitionDecl Transition
+
+definition mk_State :: "ID \<Rightarrow> StateDecl list \<Rightarrow> Node" where
+"mk_State n xs = 
+  State n [a. InnerNodeDecl a \<leftarrow> xs] [a. InnerTransitionDecl a \<leftarrow> xs] [a. ActionDecl a \<leftarrow> xs]"
 
 datatype StateMachineDecl = 
   StmContainerDecl ContainerDecl |
@@ -266,6 +268,7 @@ code_reflect RC_AST
   and Transition_ext = Transition_ext
   and Action = Entry | During | Exit
   and Node = State | Initial | Junction | Final | ProbabilisticJunction
+  and StateDecl = ActionDecl | InnerNodeDecl | InnerTransitionDecl
   and StateMachineDecl = StmContainerDecl | NodeDecl | TransitionDecl
   and StateMachineDef_ext = StateMachineDef_ext
   and OperationDecl = OpStmDecl | PreDecl | PostDecl | TerminatesDecl
@@ -275,7 +278,7 @@ code_reflect RC_AST
   and Controller_ext = Controller_ext
   and RCModuleDecl = RCModuleContainerDecl | RRefDecl | CRefDecl | ModConnectionDecl
   and RCModule_ext = RCModule_ext
-functions Variable decl_of ident ttyp variables mk_Interface mk_Container 
+functions Variable decl_of ident ttyp variables mk_Interface mk_Container mk_State
   mk_StateMachineDef mk_Operation mk_Controller mk_RCModule Transition_ext "from" "to" "trigger" "probability" 
   "condition" "action" "constants" "events" "nodes" "transitions"
   "uses" "provides" "requires" "connections" "oprefs" "srefs" "crefs"

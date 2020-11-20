@@ -41,6 +41,11 @@ stm stm1 =
   initial s1
   final s2
   final s3
+  state s4 
+  [ initial i1 
+    state s5 [state s6] 
+    transition t1 [frm i1 to s5]
+  ]
 
 context stm1
 begin
@@ -52,6 +57,24 @@ term machine
 thm machine_def
 
 end
+
+typedecl Intensity
+typedecl Status
+typedecl GasSensor
+
+stm GasAnalysis =
+  const thr :: Intensity
+  var sts::Status gs::"GasSensor list"  ins::Intensity  anl::real
+  event resume stop  turn::real  gas::"GasSensor list"
+  initial InitState
+  state NoGas
+  state Reading
+  final FinalState
+  state Analysis 
+  state GasDetected
+  transition t1 [frm InitState to NoGas]
+  transition t2 [frm NoGas to Analysis]
+  transition t3 [frm Analysis to NoGas]
 
 controller c1 =
   sref s1 = stm1

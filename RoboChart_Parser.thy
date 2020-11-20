@@ -77,14 +77,6 @@ val actionParser =
   (@{keyword "during"} |-- name >> During) || 
   (@{keyword "exit"} |-- name >> Exit);
 
-val nodeParser =
-  (@{keyword "initial"} |-- name >> Initial) ||
-  (@{keyword "junction"} |-- name >> Junction) ||
-  (@{keyword "final"} |-- name >> Final) ||
-  (@{keyword "probabilistic"} |-- name >> ProbabilisticJunction) ||
-  (@{keyword "state"} |-- name -- 
-    optional ($$$ "[" |-- repeat actionParser --| $$$ "]") [] >> (fn (n, a) => State (n, [], [], a)))
-
 (*
 val eventParser = 
   ((name --| (@{keyword "?"} -- @{keyword "["})) -- name --| @{keyword "]"}) >> Input ||
@@ -109,8 +101,26 @@ val transitionParser =
       option (@{keyword "action"} |-- term)
      --| $$$ "]") >> (fn (n, (((((s, t), tr), p), c), a)) => Named_ext (n, Transition_ext (s, t, tr, p, c, a, ())));
 
+(* We construct the node parser so that it is recursive, with descent in a maximum depth value.
+   This value can be unlimited but must be fixed we initialising the parser. We fix it to 4
+   for now, as it seems unlikely we'd ever want nested nodes of greater depth than this. *)
+
+fun nodeParser 0 = 
+  (@{keyword "initial"} |-- name >> Initial) ||
+  (@{keyword "junction"} |-- name >> Junction) ||
+  (@{keyword "final"} |-- name >> Final) ||
+  (@{keyword "probabilistic"} |-- name >> ProbabilisticJunction) |
+nodeParser n =
+  nodeParser 0 ||
+  (@{keyword "state"} |-- name -- 
+    optional ($$$ "[" |-- 
+              repeat (actionParser >> ActionDecl 
+                      || nodeParser (n - 1) >> InnerNodeDecl
+                      || transitionParser >> InnerTransitionDecl)
+              --| $$$ "]") [] >> (fn (n, ds) => mk_State n ds))
+
 val stateMachineBodyParser = 
-  (containerDeclParser >> StmContainerDecl) || (nodeParser >> NodeDecl) || (transitionParser >> TransitionDecl) ;
+  (containerDeclParser >> StmContainerDecl) || (nodeParser 4 >> NodeDecl) || (transitionParser >> TransitionDecl) ;
 
 val stateMachineDefParser =
   (name --
