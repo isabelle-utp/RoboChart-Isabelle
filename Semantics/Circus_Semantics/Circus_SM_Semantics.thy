@@ -35,33 +35,35 @@ type_synonym ('s, 'e) RStateMachine = "('s upred, ('s, 'e) Action, unit) SStateM
 
 subsection \<open> State Machine Semantics \<close>
 
+named_theorems sm_sem
+
 abbreviation "trigger_semantics t \<equiv> 
   (case tn_trigger t of 
     Some e \<Rightarrow> e | 
     None \<Rightarrow> skip)"
 
 definition tn_condition :: "('s, 'e) RTransition \<Rightarrow> 's upred" where
-"tn_condition t = case_option true_upred id (tn_cond t)"
+[sm_sem]: "tn_condition t = case_option true_upred id (tn_cond t)"
 
 definition tn_action :: "('s, 'e) RTransition \<Rightarrow> ('s, 'e) Action" where
-"tn_action t = case_option skip id (tn_act t)"
+[sm_sem]: "tn_action t = case_option skip id (tn_act t)"
 
 no_utp_lift tn_condition
 
 definition tr_semantics :: "('s, 'e) RTransition \<Rightarrow> (unit, 'e) chan \<Rightarrow> ('s, 'e) RoboAction" ("\<lbrakk>_\<rbrakk>\<^sub>T") where
-"tr_semantics t \<epsilon> \<equiv> 
+[sm_sem]: "tr_semantics t \<epsilon> \<equiv> 
   let tsem = trigger_semantics t ; tn_action t
   in
   tn_condition t \<oplus>\<^sub>p rc_state \<^bold>& 
   rc_state:[if productive tsem then tsem else tsem ; sync \<epsilon>]\<^sub>A\<^sup>+ ; rc_ctrl := \<guillemotleft>tn_target t\<guillemotright>"
 
-definition "n_entry_sem n = case_option skip id (n_entry n)"
+definition [sm_sem]: "n_entry_sem n = case_option skip id (n_entry n)"
 
-definition "n_exit_sem n = case_option skip id (n_exit n)"
+definition [sm_sem]: "n_exit_sem n = case_option skip id (n_exit n)"
 
-definition node_semantics :: 
+definition node_semantics ::  
   "('s, 'e) RStateMachine \<Rightarrow> (unit, 'e) chan \<Rightarrow> ('s, 'e) RNode \<Rightarrow> ('s, 'e) RoboAction" ("_;_ \<turnstile> \<lbrakk>_\<rbrakk>\<^sub>N" [10,0,0] 10) where
-  "node_semantics M \<epsilon> node  = 
+[sm_sem]: "node_semantics M \<epsilon> node  = 
   (rc_state:[n_entry_sem node]\<^sub>A\<^sup>+ ;
    (foldr (\<box>) (map (\<lambda> t. \<lbrakk>t\<rbrakk>\<^sub>T \<epsilon>) (the (Tmap\<^bsub>M\<^esub> (n_name node)))) stop) ;
    rc_state:[n_exit_sem node]\<^sub>A\<^sup>+)"
@@ -77,11 +79,10 @@ notation null_event ("\<epsilon>")
 end
 
 definition sm_semantics :: "('st, 'ch) RStateMachine \<Rightarrow> _ \<Rightarrow> ('st, 'ch) RoboAction" ("\<lbrakk>_\<rbrakk>\<^sub>M") where
-"sm_semantics M null_event = 
+[sm_sem]:
+"sm_semantics M null_event =
     (rc_ctrl := \<guillemotleft>sm_initial M\<guillemotright> ;
     iteration (map (\<lambda> n. (&rc_ctrl =\<^sub>u \<guillemotleft>n_name n\<guillemotright>, M;null_event \<turnstile> \<lbrakk>n\<rbrakk>\<^sub>N)) (sm_inters M)))"
-
-lemmas sm_sem_def = sm_semantics_def node_semantics_def sm_inters_def sm_inter_names_def
 
 lemma tr_semantics_subst_ctrl: "[&rc_ctrl \<mapsto>\<^sub>s \<guillemotleft>k\<guillemotright>] \<dagger> (\<lbrakk>a\<rbrakk>\<^sub>T null_event) = \<lbrakk>a\<rbrakk>\<^sub>T null_event"
   by (simp add: tr_semantics_def action_simp action_subst usubst unrest frame_asubst Let_unfold)

@@ -92,6 +92,18 @@ val machineN = "machine";
 
 fun stransitionT predT actT probT = Type (@{type_name STransition}, [predT, actT, probT])
 
+val sm_defs = (Binding.empty, [Token.make_src (@{named_theorems sm_defs}, Position.none) []])
+
+fun prove_simplify ctx thms goal = 
+  Goal.prove ctx [] []
+      (hd (Type_Infer_Context.infer_types ctx [ goal ]))
+      (fn {context = context, prems = _} =>
+          EVERY [ PARALLEL_ALLGOALS 
+                    (asm_simp_tac 
+                      (fold Simplifier.add_simp 
+                        (thms @ [@{thm Pure.reflexive}] ) 
+                  context)) ]);
+
 fun context_Stm_Semantics cont smd thy = 
   let open Syntax; open Logic; open RC_Stm; open Specification
       val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) 
@@ -101,13 +113,29 @@ fun context_Stm_Semantics cont smd thy =
       val actionT = actionT (rctypes rsp) Lens_Lib.astateT Dataspace.achanT
       val probT = probT (rctypes rsp) Lens_Lib.astateT
       (* State definitions *)
-      val seqs = map (check_term ctx o compile_Node_defn ctx (rctypes rsp) predT actionT probT) (nodes smd)
-      val teqs = map (check_term ctx o compile_Transition_defn ctx (rctypes rsp) predT actionT probT) (transitions smd)
-      val smeq = check_term ctx (RC_Stm.compile_StateMachineDef_defn ctx predT actionT probT smd)
+      val seqs = map (compile_Node_defn ctx (rctypes rsp) predT actionT probT) (nodes smd)
+      val tdefs = map (compile_Transition ctx (rctypes rsp) predT actionT probT) (transitions smd)
+      fun tr_thms ctx = 
+        map 
+            (prove_simplify ctx (Proof_Context.get_thms ctx @{named_theorems sm_defs}) o check_term ctx)
+            (List.concat (map snd tdefs))
+      fun nd_thms ctx = 
+        map 
+            (prove_simplify ctx (Proof_Context.get_thms ctx @{named_theorems sm_defs}) o check_term ctx)
+            (List.concat (map snd seqs))
+      val smdef = RC_Stm.compile_StateMachineDef ctx predT actionT probT smd
+      fun sm_thms ctx = 
+        map 
+            (prove_simplify ctx (Proof_Context.get_thms ctx @{named_theorems sm_defs}) o check_term ctx)
+            (snd smdef)
+      val simp   = Attrib.check_src ctx (Token.make_src ("simp", Position.none) [])
   in Local_Theory.exit_global 
-      ((  fold (fn seq => snd o definition NONE [] [] ((Binding.empty, []), seq)) seqs
-       #> fold (fn teq => snd o definition NONE [] [] ((Binding.empty, []), teq)) teqs
-       #> snd o definition NONE [] [] ((Binding.empty, []), smeq)
+      ((  fold (fn (seq, _) => snd o definition NONE [] [] (sm_defs, seq)) seqs
+       #> fold (fn (teq, _) => snd o definition NONE [] [] (sm_defs, check_term ctx teq)) tdefs
+       #> snd o definition NONE [] [] (sm_defs, fst smdef)
+       #> (fn ctx => Local_Theory.note ((Binding.name "transitions", [simp]), (tr_thms ctx)) ctx |> snd)
+       #> (fn ctx => Local_Theory.note ((Binding.name "nodes", [simp]), (nd_thms ctx)) ctx |> snd)
+       #> (fn ctx => Local_Theory.note ((Binding.name "machine", [simp]), (sm_thms ctx)) ctx |> snd)
        #> cont
        ) ctx)
   end;

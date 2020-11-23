@@ -28,13 +28,15 @@ notation sm_finals ("Finals\<index>")
 notation sm_nodes ("Nodes\<index>")
 notation sm_transitions ("\<^bold>T\<index>")
 
+named_theorems sm_defs
+
 subsection \<open> Query Functions \<close>
 
 definition sm_node_names :: "('pred, 'act, 'prob) SStateMachine \<Rightarrow> String.literal set" ("Nnames\<index>") where
 "sm_node_names sm \<equiv> n_name ` set(sm_nodes sm)"
 
 definition sm_inters :: "('pred, 'act, 'prob) SStateMachine \<Rightarrow> ('pred, 'act, 'prob) SNode list" where
-"sm_inters sm = filter (\<lambda> n. n_name n \<notin> set(sm_finals sm)) (sm_nodes sm)"
+[sm_defs]: "sm_inters sm = filter (\<lambda> n. n_name n \<notin> set(sm_finals sm)) (sm_nodes sm)"
 
 definition sm_inter_names ("Inames\<index>") where
 "sm_inter_names sm \<equiv> n_name ` set (sm_inters sm)"
@@ -120,25 +122,50 @@ subsection \<open> Compilation of Semantic State Machines \<close>
 
 abbreviation "parse_opt_term ctx u \<equiv> mk_option (map_option (parse_term ctx) u)"
 
-definition compile_Transition :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> Transition \<Rightarrow> term" where
-"compile_Transition ctx rsp t = 
-  const @{const_name STransition} 
-  $ mk_literal (from t)
-  $ mk_literal (to t)
-  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (trigger t)
-  $ parse_opt_term (Config.put Syntax.root (prob_syn rsp) ctx) (probability t)
-  $ parse_opt_term (Config.put Syntax.root (pred_syn rsp) ctx) (condition t)
-  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (action t)"
-
-definition compile_Transition_defn :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Transition \<Rightarrow> term" where
-"compile_Transition_defn ctx rsp pT aT prbT tr 
-  = mk_equals 
-      (Free (ident tr) (Type @{type_name STransition} [pT, aT, prbT])) 
-      (compile_Transition ctx rsp tr)"
+definition compile_Transition :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Transition \<Rightarrow> term \<times> term list" where
+"compile_Transition ctx rsp pT aT prbT t =
+ (let from_term = mk_literal (from t);
+      to_term = mk_literal (to t);
+      trig_term = parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (trigger t);
+      prob_term = parse_opt_term (Config.put Syntax.root (prob_syn rsp) ctx) (probability t);
+      cond_term = parse_opt_term (Config.put Syntax.root (pred_syn rsp) ctx) (condition t);
+      act_term = parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (action t)
+  in
+  (mk_equals 
+      (Free (ident t) (Type @{type_name STransition} [pT, aT, prbT])) 
+      (const @{const_name STransition} $ from_term $ to_term $ trig_term $ prob_term $ cond_term $ act_term)
+  ,[const @{const_name Pure.eq}
+      $ (const @{const_name tn_source} $ free (ident t))
+      $ from_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name tn_target} $ free (ident t))
+      $ to_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name tn_trigger} $ free (ident t))
+      $ trig_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name tn_probability} $ free (ident t))
+      $ prob_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name tn_cond} $ free (ident t))
+      $ cond_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name tn_act} $ free (ident t))
+      $ act_term
+   ]))"
 
 definition "basic_Node n = SNode n None None None [] []"
 
 lemma name_basic_Node [simp]: "n_name (basic_Node n) = n"
+  by (simp add: basic_Node_def)
+
+lemma entry_basic_Node [simp]: "n_entry (basic_Node n) = None"
+  by (simp add: basic_Node_def)
+
+lemma during_basic_Node [simp]: "n_during (basic_Node n) = None"
+  by (simp add: basic_Node_def)
+
+lemma exit_basic_Node [simp]: "n_exit (basic_Node n) = None"
   by (simp add: basic_Node_def)
 
 definition get_Entry :: "Action list \<Rightarrow> uterm option" where
@@ -150,29 +177,63 @@ definition get_During :: "Action list \<Rightarrow> uterm option" where
 definition get_Exit :: "Action list \<Rightarrow> uterm option" where
 "get_Exit acts = map_option act (find is_Exit acts)"
 
-fun compile_Node :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> Node \<Rightarrow> term" where
-"compile_Node ctx rsp (Initial n) = 
-  const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx rsp (Final n) =
-  const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx rsp (Junction n) =
-  const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx rsp (ProbabilisticJunction n) =
-  const @{const_name basic_Node} $ mk_literal n" |
-"compile_Node ctx rsp (State n ns ts acts) = 
+definition "null_Node_act_thms n =
+[const @{const_name Pure.eq}
+      $ (const @{const_name n_entry} $ free n)
+      $ mk_None
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name n_during} $ free n)
+      $ mk_None
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name n_exit} $ free n)
+      $ mk_None]"
+
+fun compile_Node :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term \<times> term list" where
+"compile_Node ctx rsp prT actT prbT (Initial n) = 
+  (const @{const_name basic_Node} $ mk_literal n, null_Node_act_thms n)" |
+"compile_Node ctx rsp prT actT prbT (Final n) =
+  (const @{const_name basic_Node} $ mk_literal n, null_Node_act_thms n)" |
+"compile_Node ctx rsp prT actT prbT (Junction n) =
+  (const @{const_name basic_Node} $ mk_literal n, null_Node_act_thms n)" |
+"compile_Node ctx rsp prT actT prbT (ProbabilisticJunction n) =
+  (const @{const_name basic_Node} $ mk_literal n, null_Node_act_thms n)" |
+"compile_Node ctx rsp prT actT prbT (State n ns ts acts) =
+ (let entry_term = parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Entry acts);
+      during_term = parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_During acts);
+      exit_term = parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Exit acts)
+  in
+  (
   const @{const_name SNode}
   $ mk_literal n
-  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Entry acts)
-  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_During acts)
-  $ parse_opt_term (Config.put Syntax.root (action_syn rsp) ctx) (get_Exit acts)
-  $ mk_list dummyT (map (compile_Node ctx rsp) ns)
-  $ mk_list dummyT (map (compile_Transition ctx rsp) ts)"
+  $ entry_term
+  $ during_term
+  $ exit_term
+  $ mk_list dummyT []
+  $ mk_list dummyT []
+  ,[const @{const_name Pure.eq}
+      $ (const @{const_name n_entry} $ free n)
+      $ entry_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name n_during} $ free n)
+      $ during_term
+   ,const @{const_name Pure.eq}
+      $ (const @{const_name n_exit} $ free n)
+      $ exit_term]
+  ))" (* (map (compile_Node ctx rsp prT actT prbT) ns) / (map (compile_Transition ctx rsp) ts *)
 
-definition compile_Node_defn :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term" where
+(* FIXME: How to deal with nested transitions and nodes? *)
+
+definition compile_Node_name_thm :: "Proof.context \<Rightarrow> Node \<Rightarrow> term" where
+"compile_Node_name_thm ctx node
+  = const @{const_name Pure.eq}
+      $ (const @{const_name n_name} $ free (sname node))
+      $ (mk_literal (sname node))"
+
+definition compile_Node_defn :: "Proof.context \<Rightarrow> RCTypes \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> Node \<Rightarrow> term \<times> term list" where
 "compile_Node_defn ctx rsp prT actT prbT node
-  = mk_equals 
-      (Free (sname node) (Type @{type_name SNode} [prT, actT, prbT])) 
-      (compile_Node ctx rsp node)"
+  = (let (nd, nthms) = compile_Node ctx rsp prT actT prbT node
+     in (mk_equals (Free (sname node) (Type @{type_name SNode} [prT, actT, prbT])) nd
+        , compile_Node_name_thm ctx node # nthms))"
 
 definition get_Initial :: "Node list \<Rightarrow> ID" where
 "get_Initial ns = sname (the (find is_Initial ns))"
@@ -180,30 +241,47 @@ definition get_Initial :: "Node list \<Rightarrow> ID" where
 definition get_Finals :: "Node list \<Rightarrow> ID list" where
 "get_Finals ns = map sname (filter is_Final ns)"
 
-definition compile_StateMachineDef :: "Proof.context \<Rightarrow> StateMachineDef \<Rightarrow> term" where
-"compile_StateMachineDef ctx sm = 
-  const @{const_name SStateMachine}
-  $ mk_literal (get_Initial (nodes sm))
-  $ mk_list dummyT (map mk_literal (get_Finals (nodes sm)))
-  $ mk_list dummyT (map (free \<circ> sname) (nodes sm))
-  $ mk_list dummyT (map (free \<circ> ident) (transitions sm))"
+definition get_Inters :: "Node list \<Rightarrow> ID list" where
+"get_Inters ns = map sname (filter (Not \<circ> is_Final) ns)"
 
 definition "machineN = STR ''machine''"
 
-definition compile_StateMachineDef_defn 
-  :: "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> StateMachineDef \<Rightarrow> term" where
-"compile_StateMachineDef_defn ctx prT actT prbT smd
-  = mk_equals 
+definition compile_StateMachineDef :: 
+  "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> StateMachineDef \<Rightarrow> term \<times> term list" where
+"compile_StateMachineDef ctx prT actT prbT sm = 
+  (let init_term = mk_literal (get_Initial (nodes sm));
+       finals_term = mk_list dummyT (map mk_literal (get_Finals (nodes sm)));
+       inters_term = mk_list dummyT (map free (get_Inters (nodes sm)));
+       nodes_term = mk_list dummyT (map (free \<circ> sname) (nodes sm));
+       trans_term = mk_list dummyT (map (free \<circ> ident) (transitions sm))
+   in
+   (
+   mk_equals 
       (Free machineN (Type @{type_name SStateMachine} [prT, actT, prbT])) 
-      (compile_StateMachineDef ctx smd)"
+      (const @{const_name SStateMachine} $ init_term $ finals_term $ nodes_term $ trans_term)
+   , [const @{const_name Pure.eq}
+      $ (const @{const_name sm_initial} $ free machineN)
+      $ init_term,
+      const @{const_name Pure.eq}
+      $ (const @{const_name sm_nodes} $ free machineN)
+      $ nodes_term,
+      const @{const_name Pure.eq}
+      $ (const @{const_name sm_inters} $ free machineN)
+      $ inters_term,
+      const @{const_name Pure.eq}
+      $ (const @{const_name sm_finals} $ free machineN)
+      $ finals_term,
+      const @{const_name Pure.eq}
+      $ (const @{const_name sm_transitions} $ free machineN)
+      $ trans_term]
+   ))"
 
 code_reflect RC_Stm
   functions 
     compile_Transition 
-    compile_Transition_defn
     compile_Node
     compile_Node_defn
+    compile_Node_name_thm
     compile_StateMachineDef
-    compile_StateMachineDef_defn
 
 end

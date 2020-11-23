@@ -45,8 +45,6 @@ definition "null_RCSem_Proc =
   , mod_sem = (\<lambda> _. id)
   \<rparr>"
 
-term itf_sem_update
-
 code_reflect RC_SemProc
   datatypes RCTypes_ext = RCTypes_ext and RCSem_Proc_ext = RCSem_Proc_ext
   functions 

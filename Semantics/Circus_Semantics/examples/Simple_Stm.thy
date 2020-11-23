@@ -18,16 +18,15 @@ thm t1_def
 
 term machine
 
-term "action"
+thm nodes
 
-lemma [simp]: "Init\<^bsub>machine\<^esub> = STR ''s1''"
-  by (simp add: machine_def)
+thm transitions
 
-lemma [simp]: "Tmap\<^bsub>machine\<^esub> = [STR ''s1'' \<mapsto> [t1], STR ''s2'' \<mapsto> []]"
-  by (auto simp add: sm_trans_map_def machine_def s1_def s2_def t1_def)
+thm machine
 
-lemma [simp]: "sm_inters machine = [s1]"
-  by (auto simp add: machine_def sm_inters_def s1_def s2_def basic_Node_def)
+lemma "action = undefined"
+  apply (simp add: sm_sem action_simp sm_trans_map_def action_def)
+  oops
 
 lemma "action = undefined"
   apply (simp add: action_def sm_semantics_def)

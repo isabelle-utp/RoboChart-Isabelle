@@ -50,6 +50,16 @@ stm stm1 =
 context stm1
 begin
 
+ML \<open> Proof_Context.get_thms @{context} @{named_theorems sm_defs}\<close>
+
+thm sm_defs
+
+thm transitions
+
+thm nodes
+
+thm machine
+
 term s1
 
 term machine
@@ -75,6 +85,14 @@ stm GasAnalysis =
   transition t1 [frm InitState to NoGas]
   transition t2 [frm NoGas to Analysis]
   transition t3 [frm Analysis to NoGas]
+
+context GasAnalysis
+begin
+
+thm transitions
+thm nodes
+
+end
 
 controller c1 =
   sref s1 = stm1

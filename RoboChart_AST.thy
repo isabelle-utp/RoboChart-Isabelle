@@ -158,6 +158,11 @@ fun upd_StateMachineDef :: "StateMachineDecl \<Rightarrow> 'a StateMachineDef_sc
 definition mk_StateMachineDef :: "ID \<times> StateMachineDecl list \<Rightarrow> StateMachineDef" where
 "mk_StateMachineDef = (\<lambda> (n, sds). fold upd_StateMachineDef sds (emptyStm\<lparr> ident := n \<rparr>))"
 
+text \<open> Calculate a mapping from state names to outgoing transitions \<close>
+
+definition trans_map :: "StateMachineDef \<Rightarrow> (ID \<times> ID list) list" where
+ "trans_map M = map (\<lambda> n. (sname n, map ident (filter (\<lambda> t. from t = sname n) (transitions M)))) (nodes M)"
+
 datatype OperationDecl =
   OpStmDecl StateMachineDecl |
   PreDecl uterm |
@@ -283,5 +288,6 @@ functions Variable decl_of ident ttyp variables mk_Interface mk_Container mk_Sta
   "condition" "action" "constants" "events" "nodes" "transitions"
   "uses" "provides" "requires" "connections" "oprefs" "srefs" "crefs"
   "preconditions" "postconditions" "opparams"
+  trans_map
 
 end
