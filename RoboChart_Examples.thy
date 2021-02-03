@@ -1,5 +1,5 @@
 theory RoboChart_Examples
-  imports RoboChart "HOL.Transcendental"
+  imports "RoboChart.RoboChart" "HOL.Transcendental"
 begin
 
 text \<open> We can't use braces, because they are both designated as major keywords in Isar. \<close>
