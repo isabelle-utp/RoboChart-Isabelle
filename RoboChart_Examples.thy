@@ -91,6 +91,7 @@ begin
 
 thm transitions
 thm nodes
+thm machine
 
 end
 

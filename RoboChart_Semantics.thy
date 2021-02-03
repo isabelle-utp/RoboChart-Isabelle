@@ -128,7 +128,8 @@ fun context_Stm_Semantics cont smd thy =
         map 
             (prove_simplify ctx (Proof_Context.get_thms ctx @{named_theorems sm_defs}) o check_term ctx)
             (snd smdef)
-      val simp   = Attrib.check_src ctx (Token.make_src ("simp", Position.none) [])
+      val tmap = compile_Tmap (nodes smd) (transitions smd)
+      val simp = Attrib.check_src ctx (Token.make_src ("simp", Position.none) [])
   in Local_Theory.exit_global 
       ((  fold (fn (seq, _) => snd o definition NONE [] [] (sm_defs, seq)) seqs
        #> fold (fn (teq, _) => snd o definition NONE [] [] (sm_defs, check_term ctx teq)) tdefs

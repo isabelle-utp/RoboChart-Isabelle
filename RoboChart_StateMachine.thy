@@ -50,7 +50,7 @@ definition sm_node_map ::
 
 definition sm_trans_map :: 
   "('pred, 'act, 'prob) SStateMachine \<Rightarrow> (ID \<rightharpoonup> ('pred, 'act, 'prob) STransition list)" ("Tmap\<index>") where
-"sm_trans_map M = map_of (map (\<lambda> n. (n_name n, filter (\<lambda> t. tn_source t = n_name n) (sm_transitions M))) (sm_nodes M))"
+[sm_defs]: "sm_trans_map M = map_of (map (\<lambda> n. (n_name n, filter (\<lambda> t. tn_source t = n_name n) (sm_transitions M))) (sm_nodes M))"
 
 lemma dom_sm_node_map: "dom(Nmap\<^bsub>M\<^esub>) = Nnames\<^bsub>M\<^esub>"
   using image_iff by (force simp add: sm_node_map_def sm_node_names_def dom_map_of_conv_image_fst)
@@ -154,6 +154,17 @@ definition compile_Transition :: "Proof.context \<Rightarrow> RCTypes \<Rightarr
       $ act_term
    ]))"
 
+fun compile_Map :: "(term \<times> term) list \<Rightarrow> term" where
+"compile_Map [] = const @{const_name Map.empty}" |
+"compile_Map ((k, v) # m) = const @{const_name fun_upd} $ compile_Map m $ k $ (const @{const_name Some} $ v)"
+
+text \<open> Compile a mapping from states to lists of outgoing transitions \<close>
+
+definition compile_Tmap :: "Node list \<Rightarrow> Transition list \<Rightarrow> term" where
+"compile_Tmap nds ts = 
+    (let ns = map sname nds 
+     in compile_Map (map (\<lambda> n. (mk_literal n, mk_list dummyT (map (free \<circ> ident) (filter (\<lambda> t. from t = n) ts)))) ns))"
+
 definition "basic_Node n = SNode n None None None [] []"
 
 lemma name_basic_Node [simp]: "n_name (basic_Node n) = n"
@@ -246,6 +257,8 @@ definition get_Inters :: "Node list \<Rightarrow> ID list" where
 
 definition "machineN = STR ''machine''"
 
+term sm_transitions
+
 definition compile_StateMachineDef :: 
   "Proof.context \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> typ \<Rightarrow> StateMachineDef \<Rightarrow> term \<times> term list" where
 "compile_StateMachineDef ctx prT actT prbT sm = 
@@ -273,7 +286,10 @@ definition compile_StateMachineDef ::
       $ finals_term,
       const @{const_name Pure.eq}
       $ (const @{const_name sm_transitions} $ free machineN)
-      $ trans_term]
+      $ trans_term,
+      const @{const_name Pure.eq}
+      $ (const @{const_name sm_trans_map} $ free machineN)
+      $ compile_Tmap (nodes sm) (transitions sm)]
    ))"
 
 code_reflect RC_Stm
