@@ -328,6 +328,10 @@ lemma asubst_assigns [action_subst]:
   "\<sigma> \<dagger> (\<langle>\<rho>\<rangle>\<^sub>a :: ('s, 'e) Action) = \<langle>\<rho> \<circ>\<^sub>s \<sigma>\<rangle>\<^sub>a"
   by (simp add: action_rep_eq, rdes_eq)
 
+lemma assigns_comp [action_simp]:
+  "(\<langle>\<sigma>\<rangle>\<^sub>a :: ('s, 'e) Action) ; \<langle>\<rho>\<rangle>\<^sub>a = \<langle>\<rho> \<circ>\<^sub>s \<sigma>\<rangle>\<^sub>a"
+  by (simp add: assigns_seq asubst_assigns)
+
 lemma GuardCSP_usubst:
   assumes "P is NCSP"
   shows "\<sigma> \<dagger>\<^sub>S (b &\<^sub>C P) = (\<sigma> \<dagger> b) &\<^sub>C (\<sigma> \<dagger>\<^sub>S P)"

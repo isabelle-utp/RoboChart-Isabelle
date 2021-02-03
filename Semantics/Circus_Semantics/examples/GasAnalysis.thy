@@ -18,7 +18,7 @@ record GasSensor =
 
 subsection \<open> Functions \<close>
 
-consts goreq     :: "Intensity \<times> Intensity \<Rightarrow> bool"
+consts goreq     :: "Intensity \<Rightarrow> Intensity \<Rightarrow> bool"
 consts analysis  :: "GasSensor list \<Rightarrow> Status"
 
 consts intensity :: "GasSensor list \<Rightarrow> Intensity"
@@ -26,8 +26,6 @@ consts intensity :: "GasSensor list \<Rightarrow> Intensity"
 consts location  :: "GasSensor list \<Rightarrow> real"
 
 utp_lit_vars
-
-declare [[show_sorts]]
 
 stm GasAnalysis =
   const thr :: Intensity
@@ -43,8 +41,8 @@ stm GasAnalysis =
   transition t2 [frm NoGas to Analysis trigger "gas?(gs)"]
   transition t3 [frm Analysis to NoGas condition "sts = noGas" action "resume"]
   transition t4 [frm Analysis to GasDetected condition "sts = gasD"]
-  transition t5 [frm GasDetected to FinalState condition "goreq(ins, thr)" action "stop"]
-  transition t6 [frm GasDetected to Reading condition "\<not> goreq(ins, thr)" action "anl := location(gs) ; turn!(anl)"]
+  transition t5 [frm GasDetected to FinalState condition "goreq ins thr" action "stop"]
+  transition t6 [frm GasDetected to Reading condition "\<not> goreq ins thr" action "anl := location(gs) ; turn!(anl)"]
   transition t7 [frm Reading to Analysis trigger "gas?(gs)"]
 
 context GasAnalysis
@@ -55,17 +53,10 @@ thm nodes
 thm machine
 thm sm_defs
 
-lemma transition_map: 
-  "Tmap\<^bsub>machine\<^esub> = [STR ''GasDetected'' \<mapsto> [t5, t6], STR ''Analysis'' \<mapsto> [t3, t4], STR ''FinalState'' \<mapsto> [],
-     STR ''Reading'' \<mapsto> [t7], STR ''NoGas'' \<mapsto> [t2], STR ''InitState'' \<mapsto> [t1]]"
-  by (simp add: sm_trans_map_def)
-
 thm nodes
 
 lemma "action = undefined"
-  apply (simp add: action_def action_simp n_entry_sem_def n_exit_sem_def 
-          sm_semantics_def tr_semantics_def node_semantics_def tn_condition_def tn_action_def 
-          Let_unfold )
+  apply (simp add: action_def action_simp sm_sem Let_unfold usubst)
   oops
 
 
