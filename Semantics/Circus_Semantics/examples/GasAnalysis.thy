@@ -28,13 +28,13 @@ func angle(x :: nat) :: Angle
   postcondition True
 
 func intensity(gs :: "GasSensor list") :: real
-  precondition "length gs \<ge> 0"
-  postcondition "\<forall> x :: nat. 0 \<le> x \<and> x \<le> length gs \<longrightarrow> goreq(result, (i (gs ! x)))"
-  postcondition "\<exists> y :: nat. 0 \<le> y \<and> y \<le> length gs \<longrightarrow> result = (i (gs ! y))"
+  precondition "#gs \<ge> 0"
+  postcondition "\<forall> x :: nat. 0 \<le> x \<and> x \<le> #gs \<longrightarrow> goreq(result, (i (gs ! x)))"
+  postcondition "\<exists> y :: nat. 0 \<le> y \<and> y \<le> #gs \<longrightarrow> result = (i (gs ! y))"
 
 func location(gs :: "GasSensor list") :: Angle
-  precondition "length gs \<ge> 0"
-  postcondition "\<exists> x :: nat. 0 \<le> x \<and> x \<le> length gs \<longrightarrow> i (gs ! x) = intensity gs \<and> result = angle(x)"
+  precondition "#gs \<ge> 0"
+  postcondition "\<exists> x :: nat. 0 \<le> x \<and> x \<le> #gs \<longrightarrow> i (gs ! x) = intensity gs \<and> result = angle(x)"
 
 utp_lit_vars
 
