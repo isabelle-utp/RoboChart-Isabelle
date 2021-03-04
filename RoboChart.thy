@@ -14,4 +14,8 @@ theory RoboChart
     "RoboChart_Semantics"
 begin
 
+text \<open> The following types and constants are added for compatibility with RoboTool \<close>
+
+type_synonym boolean = bool
+
 end
