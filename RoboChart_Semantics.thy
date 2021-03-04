@@ -2,7 +2,7 @@ section \<open> RoboChart Static Semantics \<close>
 
 theory RoboChart_Semantics
   imports RoboChart_Validation RoboChart_Parser RoboChart_StateMachine 
-    RoboChart_Semantic_Processors "Optics.Optics"
+    RoboChart_Semantic_Processors "Z_Toolkit.Z_Toolkit" "Optics.Optics"
   keywords 
     "interface" "func" "robotic_platform" "stm" 
     "operation" "controller" "module" :: "thy_decl_block"
@@ -11,7 +11,15 @@ begin
 text \<open> Finally, we turn the validated AST representations into semantics. This often requires
   the production of terms, which can also be represented in HOL and then code generated. \<close>
 
+text \<open> We can encode functions in different ways. For now, we chose to encode them as partial functions. \<close>
+
 definition "fun_spec P Q = (\<lambda> x. if (P x) then (THE y. Q x y) else undefined)"
+
+definition pfun_spec :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow>\<^sub>p 'b" where
+"pfun_spec P Q = (\<lambda> x | P x \<and> (\<exists> y. Q x y) \<bullet> SOME y. Q x y)"
+
+lemma pfun_spec_app_eqI [intro]: "\<lbrakk> P x; \<And> y. Q x y \<longleftrightarrow> y = f x \<rbrakk> \<Longrightarrow> (pfun_spec P Q)(x)\<^sub>p = f x"
+  by (simp add: pfun_spec_def, subst pabs_apply, auto)
 
 definition "rel_spec P Q = {(x, y). P x \<and> Q x y}"
 
@@ -24,7 +32,7 @@ fun func_body :: "Function \<Rightarrow> term" where
        Pt = constraint boolT (add_free_types ps P); 
        Qt = constraint boolT (add_free_types ((res, t) # ps) Q); 
        p = mk_tuple (map (\<lambda> (i, t). Free i t) ps)
-   in mk_equals (free n) (const @{const_name fun_spec} 
+   in mk_equals (free n) (const @{const_name pfun_spec} 
       $ (tupled_lambda p Pt) 
       $ (tupled_lambda p (tupled_lambda (Free (res) t) Qt))))"
 

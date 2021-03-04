@@ -148,7 +148,7 @@ func sqrt_alt(x :: real) :: real
   postcondition "result\<^sup>2 = x"
 
 lemma sqrt_alt: "x \<ge> 0 \<Longrightarrow> sqrt_alt x = sqrt x"
-  by (auto simp add: sqrt_alt_def fun_spec_def)
+  by (auto simp add: sqrt_alt_def)
 
 func f2(x :: int, y :: int) :: int
   precondition "x > y"
@@ -157,9 +157,7 @@ func f2(x :: int, y :: int) :: int
 func f3(x :: int) :: int
   postcondition "result = x + 1"
 
-lemma "f3 = (\<lambda> x. x + 1)"
-  by (simp add: f3_def fun_spec_def)
-
-
+lemma "f3 = (\<lambda> x \<bullet> x + 1)"
+  by (simp add: f3_def pfun_spec_def)
 
 end

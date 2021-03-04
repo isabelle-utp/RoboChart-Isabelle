@@ -8,7 +8,7 @@
 session "RoboChart"
   = "Isabelle-API" +
   options [document = false, timeout = 1000]
-  sessions Optics
+  sessions Optics Z_Toolkit
   theories
     RoboChart
 
