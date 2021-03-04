@@ -19,13 +19,10 @@ record GasSensor =
 subsection \<open> Functions \<close>
  
 func analysis(gs :: "GasSensor list"):: Status
-  postcondition True
 
 func goreq(i1 :: Intensity, i2 :: Intensity):: bool  
-  postcondition True
 
 func angle(x :: nat) :: Angle
-  postcondition True
 
 func intensity(gs :: "GasSensor list") :: real
   precondition "#gs \<ge> 0"
