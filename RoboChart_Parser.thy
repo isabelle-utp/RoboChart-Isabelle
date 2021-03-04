@@ -180,7 +180,7 @@ val moduleParser =
 val functionParser =
   (name -- parameterParser -- ($$$ "::" |-- typ) --
   repeat (@{keyword "precondition"} |-- term) --
-  repeat1 (@{keyword "postcondition"} |-- term)) >> quint1 >> FuncDecl
+  repeat (@{keyword "postcondition"} |-- term)) >> quint1 >> FuncDecl
 
 end
 \<close>

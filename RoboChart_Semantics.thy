@@ -53,7 +53,7 @@ structure Stm_Sem = Theory_Data
 
 fun compileFuncDecl ctx (FuncDecl (n, ps, t, P, Q)) =
   let open Syntax; open HOLogic in
-    Func (n, map (fn (p, t) => (p, read_typ ctx t)) ps, read_typ ctx t, Library.foldr mk_conj (map (parse_term ctx) P, @{term True}), foldr1 mk_conj (map (parse_term ctx) Q))
+    Func (n, map (fn (p, t) => (p, read_typ ctx t)) ps, read_typ ctx t, Library.foldr mk_conj (map (parse_term ctx) P, @{term True}), Library.foldr mk_conj (map (parse_term ctx) Q, @{term True}))
   end;
 
 fun compileFunction x thy = 
