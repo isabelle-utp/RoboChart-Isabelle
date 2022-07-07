@@ -110,7 +110,7 @@ begin
   lemma node_tran_exists:
     assumes "n \<in> Nnames" "t \<in> set(the(Tmap n))"
     shows "t \<in> set(\<^bold>T)"
-    by (metis (mono_tags, hide_lams) assms(1) assms(2) domIff dom_sm_trans_map in_mono init_is_state option.collapse ranI tmap_node_in_trans)
+    by (metis (mono_tags, opaque_lifting) assms(1) assms(2) domIff dom_sm_trans_map in_mono init_is_state option.collapse ranI tmap_node_in_trans)
 
 end
 

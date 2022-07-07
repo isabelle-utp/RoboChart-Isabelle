@@ -15,7 +15,7 @@ text \<open> We can encode functions in different ways. For now, we chose to enc
 
 definition "fun_spec P Q = (\<lambda> x. if (P x) then (THE y. Q x y) else undefined)"
 
-definition pfun_spec :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow>\<^sub>p 'b" where
+definition pfun_spec :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'a \<Zpfun> 'b" where
 "pfun_spec P Q = (\<lambda> x | P x \<and> (\<exists> y. Q x y) \<bullet> SOME y. Q x y)"
 
 lemma pfun_spec_app_eqI [intro]: "\<lbrakk> P x; \<And> y. Q x y \<longleftrightarrow> y = f x \<rbrakk> \<Longrightarrow> (pfun_spec P Q)(x)\<^sub>p = f x"
@@ -114,7 +114,7 @@ fun prove_simplify ctx thms goal =
 
 fun context_Stm_Semantics cont smd thy = 
   let open Syntax; open Logic; open RC_Stm; open Specification
-      val ctx = (Named_Target.init (Context.theory_name thy ^ "." ^ ident smd) 
+      val ctx = (Named_Target.init [] (Context.theory_name thy ^ "." ^ ident smd) 
                   (compileContainer smd thy))
       val rsp = Stm_Sem.get thy
       val predT = predT (rctypes rsp) Lens_Lib.astateT
