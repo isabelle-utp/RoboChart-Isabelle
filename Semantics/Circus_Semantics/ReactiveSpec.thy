@@ -1,7 +1,7 @@
 section \<open> Reactive Specifications \<close>
 
 theory ReactiveSpec
-  imports "UTP-Circus.utp_circus"
+  imports "UTP1-Circus.utp_circus"
 begin
 
 consts

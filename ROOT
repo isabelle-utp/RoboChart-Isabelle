@@ -13,9 +13,8 @@ session "RoboChart"
     RoboChart
 
 session "RoboChart-Circus" in "Semantics/Circus_Semantics"
-  = "UTP-Circus" +
+  = "UTP1-Circus" +
   options [document = false, timeout = 1000]
   sessions "RoboChart"
   theories
     RoboChart_Circus
-  

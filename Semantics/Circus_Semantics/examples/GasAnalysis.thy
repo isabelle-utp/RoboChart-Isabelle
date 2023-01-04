@@ -2,6 +2,7 @@ theory GasAnalysis
   imports "RoboChart-Circus.RoboChart_Circus"
 begin
 
+utp_lit_vars
 typedecl Chem
 type_synonym Intensity = real
 
@@ -33,8 +34,6 @@ func location(gs :: "GasSensor list") :: Angle
   precondition "#gs \<ge> 0"
   postcondition "\<exists> x :: nat. 0 \<le> x \<and> x \<le> #gs \<longrightarrow> i (gs ! x) = intensity gs \<and> result = angle(x)"
 
-utp_lit_vars
-
 stm GasAnalysis =
   const thr :: Intensity
   var sts::Status gs::"GasSensor list"  ins::Intensity  anl::Angle
@@ -47,10 +46,13 @@ stm GasAnalysis =
   state GasDetected [entry "ins := intensity(gs)"]
   transition t1 [frm InitState to NoGas action "gs := [] ; anl := Front"]
   transition t2 [frm NoGas to Analysis trigger "gas?(gs)"]
-  transition t3 [frm Analysis to NoGas condition "sts = noGas" action "resume"]
+  transition t3 [frm Analysis to NoGas condition "sts = noGas" 
+                 action "resume"]
   transition t4 [frm Analysis to GasDetected condition "sts = gasD"]
-  transition t5 [frm GasDetected to FinalState condition "goreq(ins, thr)" action "stop"]
-  transition t6 [frm GasDetected to Reading condition "\<not> goreq(ins, thr)" action "anl := location(gs) ; turn!(anl)"]
+  transition t5 [frm GasDetected to FinalState 
+                 condition "goreq(ins, thr)" action "stop"]
+  transition t6 [frm GasDetected to Reading condition "\<not> goreq(ins, thr)" 
+                 action "anl := location(gs) ; turn!(anl)"]
   transition t7 [frm Reading to Analysis trigger "gas?(gs)"]
 
 context GasAnalysis
